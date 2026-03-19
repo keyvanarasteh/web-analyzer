@@ -20,13 +20,7 @@ pub mod web_technologies;
 // Reconnaissance
 
 #[cfg(feature = "subdomain-discovery")]
-pub mod subdomain_discovery {
-    //! Advanced Subdomain Enumeration
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod subdomain_discovery;
 
 #[cfg(feature = "contact-spy")]
 pub mod contact_spy {
