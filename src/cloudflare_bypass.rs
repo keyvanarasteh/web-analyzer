@@ -1,6 +1,5 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::net::{IpAddr, Ipv4Addr};
 use std::time::Duration;
 use regex::Regex;
 
@@ -66,16 +65,18 @@ pub async fn find_real_ip(domain: &str) -> Result<CloudflareBypassResult, Box<dy
     let subdomains = vec!["direct", "origin", "api", "mail", "cpanel", "server", "ftp"];
     for sub in subdomains {
         let full = format!("{}.{}:80", sub, clean_domain);
-        if let Ok(mut addrs) = tokio::net::lookup_host(&full).await {
-            if let Some(addr) = addrs.next() {
-                let ip = addr.ip().to_string();
-                if !is_cloudflare_ip(&ip) {
-                    found_ips.push(FoundIp {
-                        ip,
-                        source: format!("subdomain_{}", sub),
-                        confidence: "Medium".into(),
-                    });
-                }
+        let resolved: Vec<_> = tokio::net::lookup_host(&full)
+            .await
+            .map(|addrs| addrs.collect())
+            .unwrap_or_default();
+        if let Some(addr) = resolved.first() {
+            let ip = addr.ip().to_string();
+            if !is_cloudflare_ip(&ip) {
+                found_ips.push(FoundIp {
+                    ip,
+                    source: format!("subdomain_{}", sub),
+                    confidence: "Medium".into(),
+                });
             }
         }
     }

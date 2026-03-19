@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use tokio::process::Command;
-use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PortInfo {
