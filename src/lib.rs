@@ -32,13 +32,7 @@ pub mod advanced_content_scanner;
 // Security Assessment
 
 #[cfg(feature = "security-analysis")]
-pub mod security_analysis {
-    //! Security Headers & SSL Analysis
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod security_analysis;
 
 #[cfg(feature = "subdomain-takeover")]
 pub mod subdomain_takeover {
