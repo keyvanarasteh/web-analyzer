@@ -19,6 +19,9 @@ pub mod seo_analysis;
 #[cfg(feature = "web-technologies")]
 pub mod web_technologies;
 
+#[cfg(feature = "domain-validator")]
+pub mod domain_validator;
+
 
 // Reconnaissance
 

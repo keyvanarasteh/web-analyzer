@@ -22,6 +22,7 @@ domain-info = []
 domain-dns = []
 seo-analysis = []
 web-technologies = []
+domain-validator = []
 
 # Reconnaissance
 subdomain-discovery = []
