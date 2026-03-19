@@ -8,6 +8,8 @@ async fn test_api_security_scanner() {
     
     let info = result.unwrap();
     assert_eq!(info.domain, "example.com");
+    assert!(info.total_paths_probed > 100, "Should probe 800+ API paths from payloads, got {}", info.total_paths_probed);
     
-    println!("api_security_scanner test passed, found {} endpoints", info.endpoints_found.len());
+    println!("api_security_scanner test passed, probed {} paths, found {} endpoints",
+        info.total_paths_probed, info.endpoints_found.len());
 }

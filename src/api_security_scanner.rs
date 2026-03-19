@@ -2,6 +2,8 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+use crate::payloads;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiEndpoint {
     pub url: String,
@@ -13,18 +15,8 @@ pub struct ApiEndpoint {
 pub struct ApiScanResult {
     pub domain: String,
     pub endpoints_found: Vec<ApiEndpoint>,
+    pub total_paths_probed: usize,
 }
-
-/// Common API paths to probe
-const API_PATHS: &[&str] = &[
-    "/api", "/api/v1", "/api/v2", "/api/v3",
-    "/v1", "/v2", "/graphql",
-    "/api/users", "/api/auth", "/api/login",
-    "/api/health", "/api/status",
-    "/swagger", "/openapi.json",
-    "/rest", "/rest/v1",
-    "/api/config", "/api/info",
-];
 
 pub async fn scan_api_endpoints(domain: &str) -> Result<ApiScanResult, Box<dyn std::error::Error + Send + Sync>> {
     let base_url = if domain.starts_with("http") {
@@ -38,9 +30,13 @@ pub async fn scan_api_endpoints(domain: &str) -> Result<ApiScanResult, Box<dyn s
         .danger_accept_invalid_certs(true)
         .build()?;
 
+    // Load API paths from embedded payload file (846 paths)
+    let api_paths = payloads::lines(payloads::API_ENDPOINTS);
+    let total_paths_probed = api_paths.len();
+
     let mut endpoints_found = Vec::new();
 
-    for path in API_PATHS {
+    for path in &api_paths {
         let url = format!("{}{}", base_url.trim_end_matches('/'), path);
         if let Ok(resp) = client.get(&url).send().await {
             let status = resp.status().as_u16();
@@ -74,5 +70,6 @@ pub async fn scan_api_endpoints(domain: &str) -> Result<ApiScanResult, Box<dyn s
     Ok(ApiScanResult {
         domain: domain.to_string(),
         endpoints_found,
+        total_paths_probed,
     })
 }

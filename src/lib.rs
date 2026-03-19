@@ -2,6 +2,9 @@
 //! 
 //! An enterprise domain security & intelligence platform.
 
+/// Compile-time embedded payloads from the `payloads/` directory.
+pub mod payloads;
+
 // Intelligence Gathering
 
 #[cfg(feature = "domain-info")]
