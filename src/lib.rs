@@ -5,22 +5,10 @@
 // Intelligence Gathering
 
 #[cfg(feature = "domain-info")]
-pub mod domain_info {
-    //! Domain Information Retrieval (WHOIS)
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod domain_info;
 
 #[cfg(feature = "domain-dns")]
-pub mod domain_dns {
-    //! DNS Record Analysis
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod domain_dns;
 
 #[cfg(feature = "seo-analysis")]
 pub mod seo_analysis {
