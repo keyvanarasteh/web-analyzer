@@ -11,22 +11,10 @@ pub mod domain_info;
 pub mod domain_dns;
 
 #[cfg(feature = "seo-analysis")]
-pub mod seo_analysis {
-    //! SEO Performance Assessment
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod seo_analysis;
 
 #[cfg(feature = "web-technologies")]
-pub mod web_technologies {
-    //! Technology Stack Detection
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod web_technologies;
 
 
 // Reconnaissance
