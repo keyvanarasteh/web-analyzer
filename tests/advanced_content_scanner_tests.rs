@@ -13,6 +13,7 @@ async fn test_scan_content() {
     println!("advanced_content_scanner test passed:");
     println!("  URLs crawled: {}", info.summary.total_urls_crawled);
     println!("  JS files: {}", info.summary.total_js_files);
+    println!("  API endpoints: {}", info.summary.total_api_endpoints);
     println!("  Secrets: {}", info.summary.secrets_count);
     println!("  JS vulns: {}", info.summary.js_vulnerabilities_count);
     println!("  SSRF findings: {}", info.summary.ssrf_vulnerabilities_count);
@@ -21,7 +22,6 @@ async fn test_scan_content() {
 #[cfg(feature = "advanced-content-scanner")]
 #[test]
 fn test_shannon_entropy() {
-    // High entropy string (random-ish)
     let high = "aB3xZ9kL2mN7pQ4s";
     let low  = "aaaaaaaaaaaaaaaa";
     
