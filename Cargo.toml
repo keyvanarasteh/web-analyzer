@@ -1,6 +1,29 @@
 [package]
 name = "web-analyzer"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+description = "WebAnalyzer Rust Port - Domain Security & Intelligence Platform"
 
 [dependencies]
+
+[features]
+default = []
+
+# Intelligence Gathering
+domain-info = []
+domain-dns = []
+seo-analysis = []
+web-technologies = []
+
+# Reconnaissance
+subdomain-discovery = []
+contact-spy = []
+advanced-content-scanner = []
+
+# Security Assessment
+security-analysis = []
+subdomain-takeover = []
+cloudflare-bypass = []
+nmap-zero-day = []
+api-security-scanner = []
+geo-analysis = []
