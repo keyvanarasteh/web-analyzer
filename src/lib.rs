@@ -35,46 +35,16 @@ pub mod advanced_content_scanner;
 pub mod security_analysis;
 
 #[cfg(feature = "subdomain-takeover")]
-pub mod subdomain_takeover {
-    //! Vulnerability Detection
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod subdomain_takeover;
 
 #[cfg(feature = "cloudflare-bypass")]
-pub mod cloudflare_bypass {
-    //! WAF Bypass Techniques
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod cloudflare_bypass;
 
 #[cfg(feature = "nmap-zero-day")]
-pub mod nmap_zero_day {
-    //! Network Vulnerability Scanning
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod nmap_zero_day;
 
 #[cfg(feature = "api-security-scanner")]
-pub mod api_security_scanner {
-    //! API Security Assessment
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod api_security_scanner;
 
 #[cfg(feature = "geo-analysis")]
-pub mod geo_analysis {
-    //! Generative Engine Optimization Rules Check
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod geo_analysis;
