@@ -23,22 +23,10 @@ pub mod web_technologies;
 pub mod subdomain_discovery;
 
 #[cfg(feature = "contact-spy")]
-pub mod contact_spy {
-    //! Contact Information Extraction
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod contact_spy;
 
 #[cfg(feature = "advanced-content-scanner")]
-pub mod advanced_content_scanner {
-    //! Deep Content Analysis
-    
-    pub fn init() {
-        // Scaffold
-    }
-}
+pub mod advanced_content_scanner;
 
 
 // Security Assessment
