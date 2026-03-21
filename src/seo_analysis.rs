@@ -202,9 +202,12 @@ pub async fn analyze_advanced_seo(domain: &str) -> Result<SeoAnalysisResult, Box
     let content_bytes = resp.bytes().await?;
     let content_size = content_bytes.len();
     let html_text = String::from_utf8_lossy(&content_bytes).to_string();
-    let document = Html::parse_document(&html_text);
-
     let base_domain = domain.replace("https://", "").replace("http://", "").replace("www.", "");
+
+    // ── 8. SEO Resources (await before parsing HTML to avoid Send bounds) ──
+    let seo_resources = check_seo_resources(&client, domain).await;
+
+    let document = Html::parse_document(&html_text);
 
     // ── 1. Basic SEO ────────────────────────────────────────────────────
     let basic_seo = analyze_basic_seo(&document);
@@ -226,9 +229,6 @@ pub async fn analyze_advanced_seo(domain: &str) -> Result<SeoAnalysisResult, Box
 
     // ── 7. Mobile & Accessibility ───────────────────────────────────────
     let mobile_accessibility = analyze_mobile(&document);
-
-    // ── 8. SEO Resources ────────────────────────────────────────────────
-    let seo_resources = check_seo_resources(&client, domain).await;
 
     // ── 9. Schema Markup ────────────────────────────────────────────────
     let schema_markup = analyze_schema(&document, &html_text);

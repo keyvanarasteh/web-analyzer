@@ -1,10 +1,10 @@
 use async_trait::async_trait;
-use axum::extract::ws::Message;
 use qicro_data_core::ws_handler::WsMessageHandler;
 use qicro_data_core::ws_server::WebSocketServer;
 use serde_json::{json, Value};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tokio_tungstenite::tungstenite::protocol::Message;
 use tracing::{debug, warn};
 
 pub struct WebAnalyzerMessageHandler {
@@ -30,37 +30,37 @@ impl WebAnalyzerMessageHandler {
                 "domain_info" => {
                     let domain = s(&data_copy, "domain");
                     if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
-                    let res = crate::domain_info::get_domain_info(&domain).await.map_err(|e| anyhow::anyhow!("{}", e))?;
+                    let res = crate::domain_info::get_domain_info(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     Ok(serde_json::to_value(res)?)
                 }
                 "domain_dns" => {
                     let domain = s(&data_copy, "domain");
                     if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
-                    let res = crate::domain_dns::get_dns_records(&domain).await.map_err(|e| anyhow::anyhow!("{}", e))?;
+                    let res = crate::domain_dns::get_dns_records(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     Ok(serde_json::to_value(res)?)
                 }
                 "security_analysis" => {
                     let domain = s(&data_copy, "domain");
                     if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
-                    let res = crate::security_analysis::analyze_security(&domain).await.map_err(|e| anyhow::anyhow!("{}", e))?;
+                    let res = crate::security_analysis::analyze_security(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     Ok(serde_json::to_value(res)?)
                 }
                 "seo_analysis" => {
                     let domain = s(&data_copy, "domain"); // or URL, usually SEO takes domain / url
                     if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
-                    let res = crate::seo_analysis::analyze_advanced_seo(&domain).await.map_err(|e| anyhow::anyhow!("{}", e))?;
+                    let res = crate::seo_analysis::analyze_advanced_seo(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     Ok(serde_json::to_value(res)?)
                 }
                 "subdomain_discovery" => {
                     let domain = s(&data_copy, "domain");
                     if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
-                    let res = crate::subdomain_discovery::discover_subdomains(&domain).await.map_err(|e| anyhow::anyhow!("{}", e))?;
+                    let res = crate::subdomain_discovery::discover_subdomains(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     Ok(serde_json::to_value(res)?)
                 }
                 "api_security_scan" => {
-                    let url = s(&data_copy, "url");
-                    if url.is_empty() { return Err(anyhow::anyhow!("Missing 'url' parameter")); }
-                    let res = crate::api_security_scanner::scan_api(&url).await.map_err(|e| anyhow::anyhow!("{}", e))?;
+                    let domain = s(&data_copy, "domain");
+                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
+                    let res = crate::api_security_scanner::scan_api_endpoints(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     Ok(serde_json::to_value(res)?)
                 }
                 _ => Err(anyhow::anyhow!("Unknown web-analyzer event: {}", event_copy)),

@@ -418,25 +418,34 @@ async fn extract_js_endpoints(client: &Client, base_url: &str) -> Vec<String> {
 
     // Collect inline JS
     let mut all_js = String::new();
-    let doc = Html::parse_document(&body);
-    let script_sel = Selector::parse("script").unwrap();
-    for el in doc.select(&script_sel) {
-        let inline = el.text().collect::<String>();
-        if inline.len() > 10 {
-            all_js.push('\n');
-            all_js.push_str(&inline);
+    let mut external_urls = Vec::new();
+
+    {
+        let doc = Html::parse_document(&body);
+        let script_sel = Selector::parse("script").unwrap();
+        for el in doc.select(&script_sel) {
+            let inline = el.text().collect::<String>();
+            if inline.len() > 10 {
+                all_js.push('\n');
+                all_js.push_str(&inline);
+            }
+            // Fetch up to 10 external JS files
+            if let Some(src) = el.value().attr("src") {
+                if external_urls.len() < 10 {
+                    external_urls.push(src.to_string());
+                }
+            }
         }
-        // Fetch up to 10 external JS files
-        if let Some(src) = el.value().attr("src") {
-            if endpoints.len() > 10 { continue; }
-            let js_url = resolve_url(base_url, src);
-            if let Some(ref js_url) = js_url {
-                if let Ok(resp) = client.get(js_url).send().await {
-                    if resp.status().is_success() {
-                        if let Ok(js_body) = resp.text().await {
-                            all_js.push('\n');
-                            all_js.push_str(&js_body);
-                        }
+    }
+
+    for src in external_urls {
+        if endpoints.len() > 10 { break; }
+        if let Some(js_url) = resolve_url(base_url, &src) {
+            if let Ok(resp) = client.get(&js_url).send().await {
+                if resp.status().is_success() {
+                    if let Ok(js_body) = resp.text().await {
+                        all_js.push('\n');
+                        all_js.push_str(&js_body);
                     }
                 }
             }

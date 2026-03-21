@@ -2,7 +2,7 @@ use qicro_data_core::graphql_registry::GraphqlTypeMeta;
 use qicro_data_core::endpoint_registry::EndpointMeta;
 use qicro_data_core::proto::{ServiceDescriptor, MethodDescriptor};
 use qicro_data_core::mcp::McpToolDef;
-use qicro_data_core::ws_registry::ChannelMeta;
+use qicro_data_core::ws_registry::{ChannelMeta, WsEventMeta};
 use qicro_data_core::graphql_registry::GraphqlOperationMeta;
 
 pub fn web_analyzer_proto_services() -> Vec<ServiceDescriptor> {
