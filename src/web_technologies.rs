@@ -217,7 +217,6 @@ pub async fn detect_web_technologies(domain: &str) -> Result<WebTechResult, Box<
     let headers = res.headers().clone();
     let html_raw = res.text().await?;
     let html_lower = html_raw.to_lowercase();
-    let document = Html::parse_document(&html_raw);
 
     let base_domain = domain.replace("https://", "").replace("http://", "");
 
@@ -226,52 +225,43 @@ pub async fn detect_web_technologies(domain: &str) -> Result<WebTechResult, Box<
     let powered_by = get_header(&headers, "x-powered-by").to_lowercase();
     let headers_str = format!("{:?}", headers).to_lowercase();
 
-    // 1. Web Server
-    let web_server = detect_server(&server_hdr, &powered_by);
+    // ── All Html-dependent (sync) work in a block so it drops before .await ──
+    let (web_server, backend, frontend, js_libraries, css_frameworks,
+         cms, ecommerce, cdn, analytics, security_headers,
+         security_vulnerabilities, information_disclosure, security_services,
+         cookie_security, is_wordpress, wp_version, wp_theme, wp_plugins) = {
+        let document = Html::parse_document(&html_raw);
 
-    // 2. Backend Technologies
-    let backend = detect_backend(&html_lower, &powered_by, &server_hdr);
+        let web_server = detect_server(&server_hdr, &powered_by);
+        let backend = detect_backend(&html_lower, &powered_by, &server_hdr);
+        let frontend = detect_frontend(&html_lower, &document);
+        let js_libraries = detect_pattern_list(&html_lower, &document, JS_LIBRARIES);
+        let css_frameworks = detect_css(&html_lower, &document);
+        let cms = detect_by_content(&html_lower, CMS_PATTERNS);
+        let ecommerce = detect_by_content(&html_lower, ECOMMERCE);
+        let cdn = detect_cdn(&server_hdr, &headers, &html_lower);
+        let analytics = detect_pattern_list(&html_lower, &document, ANALYTICS);
+        let security_headers = analyze_security_headers(&headers);
+        let security_vulnerabilities = detect_vulnerabilities(&html_lower, &headers);
+        let information_disclosure = detect_disclosure(&html_lower, &server_hdr, &powered_by);
+        let security_services = detect_waf(&headers_str, &html_lower);
+        let cookie_security = analyze_cookies(&headers);
+        let is_wordpress = is_wp(&html_lower);
 
-    // 3. Frontend Technologies
-    let frontend = detect_frontend(&html_lower, &document);
+        // Extract WP data synchronously while we have Html
+        let wp_version = if is_wordpress { extract_wp_version(&html_lower, &document) } else { String::new() };
+        let wp_theme = if is_wordpress { extract_wp_theme(&document) } else { String::new() };
+        let wp_plugins = if is_wordpress { extract_wp_plugins(&html_lower, &document) } else { vec![] };
 
-    // 4. JS Libraries
-    let js_libraries = detect_pattern_list(&html_lower, &document, JS_LIBRARIES);
+        (web_server, backend, frontend, js_libraries, css_frameworks,
+         cms, ecommerce, cdn, analytics, security_headers,
+         security_vulnerabilities, information_disclosure, security_services,
+         cookie_security, is_wordpress, wp_version, wp_theme, wp_plugins)
+    }; // `document` (Html) is dropped here — safe for async after this point
 
-    // 5. CSS Frameworks
-    let css_frameworks = detect_css(&html_lower, &document);
-
-    // 6. CMS
-    let cms = detect_by_content(&html_lower, CMS_PATTERNS);
-
-    // 7. E-commerce
-    let ecommerce = detect_by_content(&html_lower, ECOMMERCE);
-
-    // 8. CDN
-    let cdn = detect_cdn(&server_hdr, &headers, &html_lower);
-
-    // 9. Analytics
-    let analytics = detect_pattern_list(&html_lower, &document, ANALYTICS);
-
-    // 10. Security Headers
-    let security_headers = analyze_security_headers(&headers);
-
-    // 11. Security Vulnerabilities
-    let security_vulnerabilities = detect_vulnerabilities(&html_lower, &headers);
-
-    // 12. Information Disclosure
-    let information_disclosure = detect_disclosure(&html_lower, &server_hdr, &powered_by);
-
-    // 13. Security Services (WAF)
-    let security_services = detect_waf(&headers_str, &html_lower);
-
-    // 14. Cookie Security
-    let cookie_security = analyze_cookies(&headers);
-
-    // 15. WordPress Analysis
-    let is_wordpress = is_wp(&html_lower);
+    // 15. WordPress Analysis (async — no Html involved)
     let wordpress_analysis = if is_wordpress {
-        Some(analyze_wordpress(&client, &base_domain, &html_lower, &document).await)
+        Some(analyze_wordpress(&client, &base_domain, &html_lower, wp_version, wp_theme, wp_plugins).await)
     } else { None };
 
     // 16. Security Score
@@ -528,21 +518,15 @@ fn is_wp(html: &str) -> bool {
     indicators.iter().filter(|&&x| x).count() >= 2
 }
 
-async fn analyze_wordpress(client: &Client, domain: &str, html: &str, doc: &Html) -> WordPressAnalysis {
+async fn analyze_wordpress(
+    client: &Client, domain: &str, html: &str,
+    version: String, theme: String, plugins: Vec<String>,
+) -> WordPressAnalysis {
     let base_url = format!("https://{}", domain);
-
-    // Version from generator meta
-    let version = extract_wp_version(html, doc);
 
     // Confidence
     let confidence = if html.contains("wp-content/") && html.contains("wp-includes/") { "High" }
         else { "Medium" };
-
-    // Theme
-    let theme = extract_wp_theme(doc);
-
-    // Plugins
-    let plugins = extract_wp_plugins(html, doc);
 
     // Users via REST API
     let users_found = enumerate_wp_users(client, &base_url).await;
