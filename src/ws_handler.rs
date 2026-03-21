@@ -24,9 +24,9 @@ impl WebAnalyzerMessageHandler {
         let event_copy = event.to_string();
         let data_copy = data.clone();
 
-        // Spawn a background task for the actual analysis to avoid blocking the WS worker
         let handle = tokio::spawn(async move {
             match event_copy.as_str() {
+                // ── Intelligence Gathering ────────────────────────────────
                 #[cfg(feature = "domain-info")]
                 "domain_info" => {
                     let domain = s(&data_copy, "domain");
@@ -41,20 +41,38 @@ impl WebAnalyzerMessageHandler {
                     let res = crate::domain_dns::get_dns_records(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     Ok(serde_json::to_value(res)?)
                 }
-                #[cfg(feature = "security-analysis")]
-                "security_analysis" => {
-                    let domain = s(&data_copy, "domain");
-                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
-                    let res = crate::security_analysis::analyze_security(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
-                    Ok(serde_json::to_value(res)?)
-                }
                 #[cfg(feature = "seo-analysis")]
                 "seo_analysis" => {
-                    let domain = s(&data_copy, "domain"); // or URL, usually SEO takes domain / url
+                    let domain = s(&data_copy, "domain");
                     if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
                     let res = crate::seo_analysis::analyze_advanced_seo(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     Ok(serde_json::to_value(res)?)
                 }
+                #[cfg(feature = "web-technologies")]
+                "web_technologies" => {
+                    let domain = s(&data_copy, "domain");
+                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
+                    let res = crate::web_technologies::detect_web_technologies(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
+                    Ok(serde_json::to_value(res)?)
+                }
+                #[cfg(feature = "domain-validator")]
+                "domain_validate" => {
+                    let domain = s(&data_copy, "domain");
+                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
+                    let res = crate::domain_validator::validate_domain(&domain).await;
+                    Ok(serde_json::to_value(res)?)
+                }
+                #[cfg(feature = "domain-validator")]
+                "domain_validate_bulk" => {
+                    let domains: Vec<String> = data_copy.get("domains")
+                        .and_then(|v| serde_json::from_value(v.clone()).ok())
+                        .unwrap_or_default();
+                    if domains.is_empty() { return Err(anyhow::anyhow!("Missing 'domains' array parameter")); }
+                    let res = crate::domain_validator::validate_domains_bulk(&domains, 10).await;
+                    Ok(serde_json::to_value(res)?)
+                }
+
+                // ── Reconnaissance ────────────────────────────────────────
                 #[cfg(feature = "subdomain-discovery")]
                 "subdomain_discovery" => {
                     let domain = s(&data_copy, "domain");
@@ -62,11 +80,67 @@ impl WebAnalyzerMessageHandler {
                     let res = crate::subdomain_discovery::discover_subdomains(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     Ok(serde_json::to_value(res)?)
                 }
+                #[cfg(feature = "contact-spy")]
+                "contact_spy" => {
+                    let domain = s(&data_copy, "domain");
+                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
+                    let max_pages: usize = data_copy.get("max_pages").and_then(|v| v.as_u64()).unwrap_or(20) as usize;
+                    let res = crate::contact_spy::crawl_contacts(&domain, max_pages).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
+                    Ok(serde_json::to_value(res)?)
+                }
+                #[cfg(feature = "advanced-content-scanner")]
+                "content_scan" => {
+                    let domain = s(&data_copy, "domain");
+                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
+                    let res = crate::advanced_content_scanner::scan_content(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
+                    Ok(serde_json::to_value(res)?)
+                }
+
+                // ── Security Assessment ───────────────────────────────────
+                #[cfg(feature = "security-analysis")]
+                "security_analysis" => {
+                    let domain = s(&data_copy, "domain");
+                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
+                    let res = crate::security_analysis::analyze_security(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
+                    Ok(serde_json::to_value(res)?)
+                }
+                #[cfg(feature = "subdomain-takeover")]
+                "subdomain_takeover" => {
+                    let domain = s(&data_copy, "domain");
+                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
+                    let subdomains: Vec<String> = data_copy.get("subdomains")
+                        .and_then(|v| serde_json::from_value(v.clone()).ok())
+                        .unwrap_or_default();
+                    if subdomains.is_empty() { return Err(anyhow::anyhow!("Missing 'subdomains' array parameter")); }
+                    let res = crate::subdomain_takeover::check_subdomain_takeover(&domain, &subdomains).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
+                    Ok(serde_json::to_value(res)?)
+                }
+                #[cfg(feature = "cloudflare-bypass")]
+                "cloudflare_bypass" => {
+                    let domain = s(&data_copy, "domain");
+                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
+                    let res = crate::cloudflare_bypass::find_real_ip(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
+                    Ok(serde_json::to_value(res)?)
+                }
+                #[cfg(feature = "nmap-zero-day")]
+                "nmap_scan" => {
+                    let domain = s(&data_copy, "domain");
+                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
+                    let res = crate::nmap_zero_day::run_nmap_scan(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
+                    Ok(serde_json::to_value(res)?)
+                }
                 #[cfg(feature = "api-security-scanner")]
                 "api_security_scan" => {
                     let domain = s(&data_copy, "domain");
                     if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
                     let res = crate::api_security_scanner::scan_api_endpoints(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
+                    Ok(serde_json::to_value(res)?)
+                }
+                #[cfg(feature = "geo-analysis")]
+                "geo_analysis" => {
+                    let domain = s(&data_copy, "domain");
+                    if domain.is_empty() { return Err(anyhow::anyhow!("Missing 'domain' parameter")); }
+                    let res = crate::geo_analysis::analyze_geo(&domain).await.map_err(|e| anyhow::anyhow!("{:?}", e))?;
                     Ok(serde_json::to_value(res)?)
                 }
                 _ => Err(anyhow::anyhow!("Unknown web-analyzer event or feature disabled: {}", event_copy)),
