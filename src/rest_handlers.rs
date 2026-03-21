@@ -47,7 +47,25 @@ pub fn web_analyzer_mcp_tools() -> Vec<McpToolDef> {
     ]
 }
 
-pub fn web_analyzer_websockets() -> Vec<ChannelMeta> { vec![] }
+pub fn web_analyzer_websockets() -> Vec<ChannelMeta> {
+    vec![
+        ChannelMeta::new("web-analyzer", "/ws/web-analyzer")
+            .description("Web Security & Intelligence Analysis Platform")
+            .module("web-analyzer")
+            .event(WsEventMeta::new("domain_info", "client_to_server").summary("Get domain WHOIS and registration info").payload_type("DomainInfoRequest"))
+            .event(WsEventMeta::new("domain_dns", "client_to_server").summary("Get DNS records for a domain").payload_type("DnsRequest"))
+            .event(WsEventMeta::new("security_analysis", "client_to_server").summary("Determine security posture of a domain").payload_type("SecurityRequest"))
+            .event(WsEventMeta::new("seo_analysis", "client_to_server").summary("SEO analysis of a URL/domain").payload_type("SeoRequest"))
+            .event(WsEventMeta::new("subdomain_discovery", "client_to_server").summary("Discover subdomains").payload_type("SubdomainRequest"))
+            .event(WsEventMeta::new("api_security_scan", "client_to_server").summary("Scan API for security vulnerabilities").payload_type("ApiScanRequest"))
+            .event(WsEventMeta::new("domain_info_result", "server_to_client").summary("Result of domain info gather").payload_type("DomainInfoResult"))
+            .event(WsEventMeta::new("domain_dns_result", "server_to_client").summary("Result of DNS analysis").payload_type("DnsResult"))
+            .event(WsEventMeta::new("security_analysis_result", "server_to_client").summary("Result of security analysis").payload_type("SecurityReport"))
+            .event(WsEventMeta::new("seo_analysis_result", "server_to_client").summary("Result of SEO analysis").payload_type("SeoReport"))
+            .event(WsEventMeta::new("subdomain_discovery_result", "server_to_client").summary("Result of subdomain discovery").payload_type("SubdomainList"))
+            .event(WsEventMeta::new("api_security_scan_result", "server_to_client").summary("Result of API security scan").payload_type("ApiSecurityReport"))
+    ]
+}
 
 pub fn web_analyzer_graphql_operations() -> Vec<GraphqlOperationMeta> {
     vec![

@@ -56,5 +56,6 @@ pub mod api_security_scanner;
 pub mod geo_analysis;
 
 pub mod rest_handlers;
+pub mod ws_handler;
 
 pub mod error;
