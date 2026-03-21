@@ -54,3 +54,7 @@ pub mod api_security_scanner;
 
 #[cfg(feature = "geo-analysis")]
 pub mod geo_analysis;
+
+pub mod rest_handlers;
+
+pub mod error;
