@@ -1053,3 +1053,21 @@ fn resolve_url(base: &str, href: &str) -> Option<String> {
     };
     Some(format!("{}{}", base_trimmed, href.trim_start_matches('/')))
 }
+
+impl qicro_data_core::registry::Registrable for ApiEndpoint {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("ApiEndpoint", "apiendpoint")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for VulnerabilityFinding {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("VulnerabilityFinding", "vulnerabilityfinding")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for ApiScanResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("ApiScanResult", "apiscanresult")
+    }
+}

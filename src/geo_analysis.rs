@@ -187,3 +187,27 @@ pub async fn analyze_geo(domain: &str) -> Result<GeoAnalysisResult, Box<dyn std:
         geo_grade: grade,
     })
 }
+
+impl qicro_data_core::registry::Registrable for GeoAnalysisResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("GeoAnalysisResult", "geoanalysisresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for LlmsTxtResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("LlmsTxtResult", "llmstxtresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for WebMcpResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("WebMcpResult", "webmcpresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for AiCrawlerResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("AiCrawlerResult", "aicrawlerresult")
+    }
+}

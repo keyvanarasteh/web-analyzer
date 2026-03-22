@@ -435,3 +435,39 @@ async fn validate_ssl(domain: &str) -> Result<SslValidation, String> {
         Err(format!("SSL connection failed"))
     }
 }
+
+impl qicro_data_core::registry::Registrable for ValidationResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("ValidationResult", "validationresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for DnsValidation {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("DnsValidation", "dnsvalidation")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for HttpValidation {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("HttpValidation", "httpvalidation")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for SslValidation {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SslValidation", "sslvalidation")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for ValidationStats {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("ValidationStats", "validationstats")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for BulkValidationResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("BulkValidationResult", "bulkvalidationresult")
+    }
+}

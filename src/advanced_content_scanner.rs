@@ -752,3 +752,33 @@ fn is_same_domain(base: &str, url: &str) -> bool {
     };
     extract_host(base) == extract_host(url)
 }
+
+impl qicro_data_core::registry::Registrable for SecretFinding {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SecretFinding", "secretfinding")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for JsVulnerability {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("JsVulnerability", "jsvulnerability")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for SsrfFinding {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SsrfFinding", "ssrffinding")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for ScanSummary {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("ScanSummary", "scansummary")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for ScannerResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("ScannerResult", "scannerresult")
+    }
+}

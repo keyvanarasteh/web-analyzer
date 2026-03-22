@@ -107,3 +107,9 @@ pub fn is_subdomain(domain: &str) -> bool {
 
     parts.len() > 2
 }
+
+impl qicro_data_core::registry::Registrable for SubdomainDiscoveryResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SubdomainDiscoveryResult", "subdomaindiscoveryresult")
+    }
+}

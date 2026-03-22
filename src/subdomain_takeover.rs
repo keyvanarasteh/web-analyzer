@@ -377,3 +377,27 @@ fn suggest_mitigation(vuln_type: &str, service: &str) -> String {
         _ => "Review DNS configuration and remove references to services or resources no longer in use.".into(),
     }
 }
+
+impl qicro_data_core::registry::Registrable for DnsCheckResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("DnsCheckResult", "dnscheckresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for TakeoverVulnerability {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("TakeoverVulnerability", "takeovervulnerability")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for ScanStatistics {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("ScanStatistics", "scanstatistics")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for TakeoverResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("TakeoverResult", "takeoverresult")
+    }
+}

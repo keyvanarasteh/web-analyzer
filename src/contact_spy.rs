@@ -398,3 +398,15 @@ fn resolve_url(base: &str, href: &str) -> Option<String> {
     };
     Some(format!("{}{}", base_trimmed, href.trim_start_matches('/')))
 }
+
+impl qicro_data_core::registry::Registrable for SocialProfile {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SocialProfile", "socialprofile")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for ContactSpyResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("ContactSpyResult", "contactspyresult")
+    }
+}

@@ -767,3 +767,57 @@ fn collect_stylesheet_hrefs(doc: &Html) -> String {
         .join(" ")
         .to_lowercase()
 }
+
+impl qicro_data_core::registry::Registrable for WebTechResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("WebTechResult", "webtechresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for SecurityHeaderInfo {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SecurityHeaderInfo", "securityheaderinfo")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for VulnerabilityInfo {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("VulnerabilityInfo", "vulnerabilityinfo")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for DisclosureInfo {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("DisclosureInfo", "disclosureinfo")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for SecurityServicesInfo {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SecurityServicesInfo", "securityservicesinfo")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for CookieSecurityInfo {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("CookieSecurityInfo", "cookiesecurityinfo")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for WordPressAnalysis {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("WordPressAnalysis", "wordpressanalysis")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for WpUser {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("WpUser", "wpuser")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for SecurityScoreResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SecurityScoreResult", "securityscoreresult")
+    }
+}

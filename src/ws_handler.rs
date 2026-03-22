@@ -227,3 +227,9 @@ impl WsMessageHandler for WebAnalyzerMessageHandler {
 fn s(data: &Value, key: &str) -> String {
     data.get(key).and_then(|v| v.as_str()).unwrap_or("").to_string()
 }
+
+impl qicro_data_core::registry::Registrable for WebAnalyzerMessageHandler {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("WebAnalyzerMessageHandler", "webanalyzermessagehandler")
+    }
+}

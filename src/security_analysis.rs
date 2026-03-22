@@ -677,3 +677,81 @@ fn generate_recommendations(
     recs.truncate(10);
     recs
 }
+
+impl qicro_data_core::registry::Registrable for SecurityAnalysisResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SecurityAnalysisResult", "securityanalysisresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for WafMatch {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("WafMatch", "wafmatch")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for WafDetectionResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("WafDetectionResult", "wafdetectionresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for HeaderAnalysis {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("HeaderAnalysis", "headeranalysis")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for SecurityHeadersResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SecurityHeadersResult", "securityheadersresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for SslAnalysisResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SslAnalysisResult", "sslanalysisresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for CorsPolicyResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("CorsPolicyResult", "corspolicyresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for CookieSecurityResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("CookieSecurityResult", "cookiesecurityresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for HttpMethodsResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("HttpMethodsResult", "httpmethodsresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for ServerInfoResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("ServerInfoResult", "serverinforesult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for VulnerabilityFound {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("VulnerabilityFound", "vulnerabilityfound")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for VulnScanResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("VulnScanResult", "vulnscanresult")
+    }
+}
+
+impl qicro_data_core::registry::Registrable for SecurityScoreResult {
+    fn model_meta() -> qicro_data_core::registry::ModelMeta {
+        qicro_data_core::registry::ModelMeta::new("SecurityScoreResult", "securityscoreresult")
+    }
+}
