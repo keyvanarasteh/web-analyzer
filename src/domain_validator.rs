@@ -9,18 +9,47 @@ use tokio::process::Command;
 // ── Constants ───────────────────────────────────────────────────────────────
 
 const SKIP_PATTERNS: &[&str] = &[
-    "stun.l.google.com", ".cloudapp.azure.com", "clients6.google.com",
-    ".cdn.cloudflare.net", "rr1.sn-", "rr2.sn-", "rr3.sn-", "rr4.sn-", "rr5.sn-",
-    "e-0014.e-msedge", "s-part-", ".t-msedge.net", "perimeterx.map",
-    "i.ytimg.com", "analytics-alv.google.com", "signaler-pa.clients",
+    "stun.l.google.com",
+    ".cloudapp.azure.com",
+    "clients6.google.com",
+    ".cdn.cloudflare.net",
+    "rr1.sn-",
+    "rr2.sn-",
+    "rr3.sn-",
+    "rr4.sn-",
+    "rr5.sn-",
+    "e-0014.e-msedge",
+    "s-part-",
+    ".t-msedge.net",
+    "perimeterx.map",
+    "i.ytimg.com",
+    "analytics-alv.google.com",
+    "signaler-pa.clients",
     "westus-0.in.applicationinsights",
 ];
 
 const INTERNAL_PATTERNS: &[&str] = &[
-    "localhost", "127.0.0.1", "0.0.0.0", "192.168.", "10.",
-    "172.16.", "172.17.", "172.18.", "172.19.", "172.20.",
-    "172.21.", "172.22.", "172.23.", "172.24.", "172.25.",
-    "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.",
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "192.168.",
+    "10.",
+    "172.16.",
+    "172.17.",
+    "172.18.",
+    "172.19.",
+    "172.20.",
+    "172.21.",
+    "172.22.",
+    "172.23.",
+    "172.24.",
+    "172.25.",
+    "172.26.",
+    "172.27.",
+    "172.28.",
+    "172.29.",
+    "172.30.",
+    "172.31.",
 ];
 
 // ── Data Structures ─────────────────────────────────────────────────────────
@@ -97,9 +126,12 @@ struct AtomicStats {
 impl AtomicStats {
     fn new() -> Self {
         Self {
-            valid: AtomicUsize::new(0), invalid: AtomicUsize::new(0),
-            skipped: AtomicUsize::new(0), dns_failed: AtomicUsize::new(0),
-            http_failed: AtomicUsize::new(0), ssl_failed: AtomicUsize::new(0),
+            valid: AtomicUsize::new(0),
+            invalid: AtomicUsize::new(0),
+            skipped: AtomicUsize::new(0),
+            dns_failed: AtomicUsize::new(0),
+            http_failed: AtomicUsize::new(0),
+            ssl_failed: AtomicUsize::new(0),
         }
     }
 }
@@ -158,9 +190,15 @@ pub async fn validate_domains_bulk(
                 stats.valid.fetch_add(1, Ordering::Relaxed);
             } else {
                 stats.invalid.fetch_add(1, Ordering::Relaxed);
-                if !result.dns_valid { stats.dns_failed.fetch_add(1, Ordering::Relaxed); }
-                if !result.http_valid && result.dns_valid { stats.http_failed.fetch_add(1, Ordering::Relaxed); }
-                if !result.ssl_valid && result.dns_valid { stats.ssl_failed.fetch_add(1, Ordering::Relaxed); }
+                if !result.dns_valid {
+                    stats.dns_failed.fetch_add(1, Ordering::Relaxed);
+                }
+                if !result.http_valid && result.dns_valid {
+                    stats.http_failed.fetch_add(1, Ordering::Relaxed);
+                }
+                if !result.ssl_valid && result.dns_valid {
+                    stats.ssl_failed.fetch_add(1, Ordering::Relaxed);
+                }
             }
 
             result
@@ -178,7 +216,8 @@ pub async fn validate_domains_bulk(
     let elapsed = start.elapsed().as_secs_f64();
     let valid_count = stats.valid.load(Ordering::Relaxed);
 
-    let valid_domains: Vec<String> = results.iter()
+    let valid_domains: Vec<String> = results
+        .iter()
         .filter(|r| r.valid)
         .map(|r| r.domain.clone())
         .collect();
@@ -192,9 +231,17 @@ pub async fn validate_domains_bulk(
             dns_failed: stats.dns_failed.load(Ordering::Relaxed),
             http_failed: stats.http_failed.load(Ordering::Relaxed),
             ssl_failed: stats.ssl_failed.load(Ordering::Relaxed),
-            success_rate: if total > 0 { (valid_count as f64 / total as f64) * 100.0 } else { 0.0 },
+            success_rate: if total > 0 {
+                (valid_count as f64 / total as f64) * 100.0
+            } else {
+                0.0
+            },
             processing_time_secs: elapsed,
-            domains_per_sec: if elapsed > 0.0 { total as f64 / elapsed } else { 0.0 },
+            domains_per_sec: if elapsed > 0.0 {
+                total as f64 / elapsed
+            } else {
+                0.0
+            },
         },
         valid_domains,
         results,
@@ -206,9 +253,14 @@ pub async fn validate_domains_bulk(
 async fn validate_single(client: &Client, domain: &str) -> ValidationResult {
     let mut result = ValidationResult {
         domain: domain.to_string(),
-        valid: false, skip_reason: None,
-        dns_valid: false, http_valid: false, ssl_valid: false,
-        dns_info: None, http_info: None, ssl_info: None,
+        valid: false,
+        skip_reason: None,
+        dns_valid: false,
+        http_valid: false,
+        ssl_valid: false,
+        dns_info: None,
+        http_info: None,
+        ssl_info: None,
         errors: vec![],
     };
 
@@ -235,7 +287,9 @@ async fn validate_single(client: &Client, domain: &str) -> ValidationResult {
         Ok(http) => {
             result.http_valid = http.http_reachable || http.https_reachable;
             if !result.http_valid {
-                result.errors.push("HTTP: No HTTP/HTTPS connectivity".into());
+                result
+                    .errors
+                    .push("HTTP: No HTTP/HTTPS connectivity".into());
             }
             result.http_info = Some(http);
         }
@@ -324,21 +378,28 @@ async fn validate_dns(domain: &str) -> Result<DnsValidation, String> {
         .await
         .unwrap_or_else(|_| std::process::Output {
             status: std::process::ExitStatus::default(),
-            stdout: vec![], stderr: vec![],
+            stdout: vec![],
+            stderr: vec![],
         });
 
     let mx_exists = !String::from_utf8_lossy(&mx_output.stdout).trim().is_empty();
 
-    Ok(DnsValidation { ip_addresses: a_records, mx_exists })
+    Ok(DnsValidation {
+        ip_addresses: a_records,
+        mx_exists,
+    })
 }
 
 // ── HTTP Validation ─────────────────────────────────────────────────────────
 
 async fn validate_http(client: &Client, domain: &str) -> Result<HttpValidation, String> {
     let mut info = HttpValidation {
-        http_reachable: false, https_reachable: false,
-        http_status: None, https_status: None,
-        redirects_to_https: false, response_time_ms: 0,
+        http_reachable: false,
+        https_reachable: false,
+        http_status: None,
+        https_status: None,
+        redirects_to_https: false,
+        response_time_ms: 0,
     };
 
     let start = Instant::now();
@@ -366,7 +427,11 @@ async fn validate_http(client: &Client, domain: &str) -> Result<HttpValidation, 
         .build()
         .unwrap_or_else(|_| Client::new());
 
-    match no_redirect_client.head(format!("http://{}", domain)).send().await {
+    match no_redirect_client
+        .head(format!("http://{}", domain))
+        .send()
+        .await
+    {
         Ok(resp) => {
             info.http_reachable = true;
             info.http_status = Some(resp.status().as_u16());
@@ -398,8 +463,12 @@ async fn validate_http(client: &Client, domain: &str) -> Result<HttpValidation, 
 async fn validate_ssl(domain: &str) -> Result<SslValidation, String> {
     let output = Command::new("openssl")
         .args([
-            "s_client", "-connect", &format!("{}:443", domain),
-            "-servername", domain, "-brief",
+            "s_client",
+            "-connect",
+            &format!("{}:443", domain),
+            "-servername",
+            domain,
+            "-brief",
         ])
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
@@ -414,23 +483,33 @@ async fn validate_ssl(domain: &str) -> Result<SslValidation, String> {
 
     if combined.contains("CONNECTION ESTABLISHED") || combined.contains("Protocol") {
         // Extract protocol version
-        let protocol = combined.lines()
+        let protocol = combined
+            .lines()
             .find(|l| l.contains("Protocol version:") || l.starts_with("Protocol"))
             .and_then(|l| l.split(':').nth(1))
             .map(|s| s.trim().to_string())
             .unwrap_or_else(|| "Unknown".into());
 
         // Extract cipher
-        let cipher = combined.lines()
+        let cipher = combined
+            .lines()
             .find(|l| l.contains("Ciphersuite:") || l.contains("Cipher"))
             .and_then(|l| l.split(':').nth(1))
             .map(|s| s.trim().to_string())
             .unwrap_or_else(|| "Unknown".into());
 
-        Ok(SslValidation { ssl_available: true, protocol_version: protocol, cipher_suite: cipher })
+        Ok(SslValidation {
+            ssl_available: true,
+            protocol_version: protocol,
+            cipher_suite: cipher,
+        })
     } else if output.status.success() || combined.contains("Verify") {
         // openssl connected even without -brief details
-        Ok(SslValidation { ssl_available: true, protocol_version: "TLS".into(), cipher_suite: "Unknown".into() })
+        Ok(SslValidation {
+            ssl_available: true,
+            protocol_version: "TLS".into(),
+            cipher_suite: "Unknown".into(),
+        })
     } else {
         Err(format!("SSL connection failed"))
     }

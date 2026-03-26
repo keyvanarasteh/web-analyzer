@@ -1,5 +1,5 @@
 //! WebAnalyzer Rust Port
-//! 
+//!
 //! An enterprise domain security & intelligence platform.
 
 /// Compile-time embedded payloads from the `payloads/` directory.
@@ -22,7 +22,6 @@ pub mod web_technologies;
 #[cfg(feature = "domain-validator")]
 pub mod domain_validator;
 
-
 // Reconnaissance
 
 #[cfg(feature = "subdomain-discovery")]
@@ -33,7 +32,6 @@ pub mod contact_spy;
 
 #[cfg(feature = "advanced-content-scanner")]
 pub mod advanced_content_scanner;
-
 
 // Security Assessment
 

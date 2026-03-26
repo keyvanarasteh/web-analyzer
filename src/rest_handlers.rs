@@ -2,7 +2,7 @@ use qicro_data_core::endpoint_registry::{EndpointMeta, ParamMeta};
 use qicro_data_core::graphql_registry::{GraphqlFieldMeta, GraphqlOperationMeta, GraphqlTypeMeta};
 use qicro_data_core::mcp::McpToolDef;
 use qicro_data_core::proto::{MethodDescriptor, ServiceDescriptor};
-use qicro_data_core::registry::{ModelMeta, FieldMeta};
+use qicro_data_core::registry::{FieldMeta, ModelMeta};
 use qicro_data_core::ws_registry::{ChannelMeta, WsEventMeta};
 
 // ═══════════════════════════════════════════════════════════════════
@@ -673,7 +673,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("has_https", "bool"))
             .field(FieldMeta::new("has_hsts", "bool"))
             .field(FieldMeta::new("security_headers", "Vec<String>")),
-
         // ── domain_dns ──────────────────────────────────────────
         ModelMeta::new("DomainDnsResult", "domain_dns_results")
             .description("DNS record resolution results")
@@ -690,7 +689,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("txt", "Vec<String>"))
             .field(FieldMeta::new("cname", "Vec<String>"))
             .field(FieldMeta::new("soa", "Vec<String>")),
-
         // ── web_technologies ────────────────────────────────────
         ModelMeta::new("WebTechResult", "web_tech_results")
             .description("Detected web technologies, frameworks, and security posture")
@@ -705,10 +703,22 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("ecommerce", "Vec<String>"))
             .field(FieldMeta::new("cdn", "Vec<String>"))
             .field(FieldMeta::new("analytics", "Vec<String>"))
-            .field(FieldMeta::new("security_headers", "Vec<SecurityHeaderInfo>"))
-            .field(FieldMeta::new("security_vulnerabilities", "Vec<VulnerabilityInfo>"))
-            .field(FieldMeta::new("information_disclosure", "Vec<DisclosureInfo>"))
-            .field(FieldMeta::new("security_services", "Vec<SecurityServicesInfo>"))
+            .field(FieldMeta::new(
+                "security_headers",
+                "Vec<SecurityHeaderInfo>",
+            ))
+            .field(FieldMeta::new(
+                "security_vulnerabilities",
+                "Vec<VulnerabilityInfo>",
+            ))
+            .field(FieldMeta::new(
+                "information_disclosure",
+                "Vec<DisclosureInfo>",
+            ))
+            .field(FieldMeta::new(
+                "security_services",
+                "Vec<SecurityServicesInfo>",
+            ))
             .field(FieldMeta::new("cookie_security", "Vec<CookieSecurityInfo>"))
             .field(FieldMeta::new("is_wordpress", "bool"))
             .field(FieldMeta::new("wordpress_analysis", "Option<WordPressAnalysis>").nullable())
@@ -770,7 +780,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("score", "u32"))
             .field(FieldMeta::new("grade", "String"))
             .field(FieldMeta::new("details", "Vec<String>")),
-
         // ── security_analysis ───────────────────────────────────
         ModelMeta::new("SecurityAnalysisResult", "security_analysis_results")
             .description("Comprehensive security assessment report")
@@ -868,7 +877,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("score", "u32"))
             .field(FieldMeta::new("grade", "String"))
             .field(FieldMeta::new("summary", "String")),
-
         // ── seo_analysis ────────────────────────────────────────
         ModelMeta::new("SeoAnalysisResult", "seo_analysis_results")
             .description("Comprehensive SEO analysis report")
@@ -969,7 +977,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("has_schema", "bool"))
             .field(FieldMeta::new("types", "Vec<String>"))
             .field(FieldMeta::new("score", "u32")),
-
         // ── domain_validator ────────────────────────────────────
         ModelMeta::new("ValidationResult", "validation_results")
             .description("Single domain validation result")
@@ -1012,7 +1019,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .source_crate("web-analyzer")
             .field(FieldMeta::new("results", "Vec<ValidationResult>"))
             .field(FieldMeta::new("stats", "ValidationStats")),
-
         // ── subdomain_discovery ─────────────────────────────────
         ModelMeta::new("SubdomainDiscoveryResult", "subdomain_discovery_results")
             .description("Discovered subdomains via Subfinder")
@@ -1021,7 +1027,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("subdomains", "Vec<String>"))
             .field(FieldMeta::new("total", "usize"))
             .field(FieldMeta::new("sources", "Vec<String>")),
-
         // ── contact_spy ─────────────────────────────────────────
         ModelMeta::new("SocialProfile", "social_profiles")
             .description("Social media profile link")
@@ -1037,7 +1042,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("phones", "Vec<String>"))
             .field(FieldMeta::new("social_profiles", "Vec<SocialProfile>"))
             .field(FieldMeta::new("pages_scanned", "usize")),
-
         // ── advanced_content_scanner ────────────────────────────
         ModelMeta::new("SecretFinding", "secret_findings")
             .description("Exposed secret or credential in page content")
@@ -1074,7 +1078,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("js_vulnerabilities", "Vec<JsVulnerability>"))
             .field(FieldMeta::new("ssrf_findings", "Vec<SsrfFinding>"))
             .field(FieldMeta::new("summary", "ScanSummary")),
-
         // ── subdomain_takeover ──────────────────────────────────
         ModelMeta::new("DnsCheckResult", "dns_check_results")
             .description("DNS check for a subdomain (CNAME, A, resolved status)")
@@ -1103,10 +1106,12 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .description("Full subdomain takeover scan results")
             .source_crate("web-analyzer")
             .field(FieldMeta::new("domain", "String"))
-            .field(FieldMeta::new("vulnerabilities", "Vec<TakeoverVulnerability>"))
+            .field(FieldMeta::new(
+                "vulnerabilities",
+                "Vec<TakeoverVulnerability>",
+            ))
             .field(FieldMeta::new("dns_results", "Vec<DnsCheckResult>"))
             .field(FieldMeta::new("statistics", "ScanStatistics")),
-
         // ── cloudflare_bypass ───────────────────────────────────
         ModelMeta::new("FoundIp", "found_ips")
             .description("IP address found behind Cloudflare")
@@ -1121,7 +1126,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("is_cloudflare", "bool"))
             .field(FieldMeta::new("found_ips", "Vec<FoundIp>"))
             .field(FieldMeta::new("methods_tried", "Vec<String>")),
-
         // ── nmap_zero_day ───────────────────────────────────────
         ModelMeta::new("PortInfo", "port_infos")
             .description("Open port with service details")
@@ -1155,9 +1159,11 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("target", "String"))
             .field(FieldMeta::new("dns", "NmapDnsInfo"))
             .field(FieldMeta::new("ports", "Vec<PortInfo>"))
-            .field(FieldMeta::new("vulnerabilities", "Vec<NmapVulnerabilityInfo>"))
+            .field(FieldMeta::new(
+                "vulnerabilities",
+                "Vec<NmapVulnerabilityInfo>",
+            ))
             .field(FieldMeta::new("os_detection", "String").nullable()),
-
         // ── api_security_scanner ────────────────────────────────
         ModelMeta::new("ApiEndpoint", "api_endpoints")
             .description("Discovered API endpoint")
@@ -1182,7 +1188,6 @@ pub fn web_analyzer_model_metas() -> Vec<ModelMeta> {
             .field(FieldMeta::new("findings", "Vec<ApiVulnerabilityFinding>"))
             .field(FieldMeta::new("total_endpoints", "usize"))
             .field(FieldMeta::new("total_vulnerabilities", "usize")),
-
         // ── geo_analysis ────────────────────────────────────────
         ModelMeta::new("GeoAnalysisResult", "geo_analysis_results")
             .description("IP geolocation and hosting infrastructure analysis")

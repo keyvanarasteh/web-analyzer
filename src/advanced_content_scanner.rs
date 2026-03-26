@@ -1,9 +1,9 @@
+use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashSet, VecDeque};
 use std::time::Duration;
-use regex::Regex;
 
 use crate::payloads;
 
@@ -62,36 +62,75 @@ pub struct ScannerResult {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 fn shannon_entropy(data: &str) -> f64 {
-    if data.is_empty() { return 0.0; }
+    if data.is_empty() {
+        return 0.0;
+    }
     let mut freq = [0u32; 256];
-    for b in data.bytes() { freq[b as usize] += 1; }
+    for b in data.bytes() {
+        freq[b as usize] += 1;
+    }
     let len = data.len() as f64;
     freq.iter()
         .filter(|&&c| c > 0)
-        .map(|&c| { let p = c as f64 / len; -p * p.log2() })
+        .map(|&c| {
+            let p = c as f64 / len;
+            -p * p.log2()
+        })
         .sum()
 }
 
 fn mask_secret(s: &str) -> String {
     if s.len() <= 8 {
-        if s.len() > 2 { format!("****{}", &s[s.len()-2..]) } else { "****".into() }
+        if s.len() > 2 {
+            format!("****{}", &s[s.len() - 2..])
+        } else {
+            "****".into()
+        }
     } else {
-        format!("{}****{}", &s[..4], &s[s.len()-4..])
+        format!("{}****{}", &s[..4], &s[s.len() - 4..])
     }
 }
 
 fn is_false_positive_context(context: &str) -> bool {
-    let fp = ["example", "sample", "placeholder", "dummy", "test", "demo",
-              "your_", "my_", "template", "undefined", "localhost", "127.0.0.1"];
+    let fp = [
+        "example",
+        "sample",
+        "placeholder",
+        "dummy",
+        "test",
+        "demo",
+        "your_",
+        "my_",
+        "template",
+        "undefined",
+        "localhost",
+        "127.0.0.1",
+    ];
     let ctx_lower = context.to_lowercase();
     fp.iter().any(|p| ctx_lower.contains(p))
 }
 
 fn is_known_library(url: &str) -> bool {
     let libs = [
-        "jquery", "bootstrap", "modernizr", "polyfill", "vendor", "bundle",
-        "analytics", "tracking", "ga.js", "gtm.js", "react", "angular",
-        "vue", "lodash", "moment", "cdn", "static", "dist", "chunk",
+        "jquery",
+        "bootstrap",
+        "modernizr",
+        "polyfill",
+        "vendor",
+        "bundle",
+        "analytics",
+        "tracking",
+        "ga.js",
+        "gtm.js",
+        "react",
+        "angular",
+        "vue",
+        "lodash",
+        "moment",
+        "cdn",
+        "static",
+        "dist",
+        "chunk",
     ];
     let url_lower = url.to_lowercase();
     libs.iter().any(|lib| url_lower.contains(lib))
@@ -107,54 +146,152 @@ struct SecretPattern {
 }
 
 const SECRET_PATTERNS: &[SecretPattern] = &[
-    SecretPattern { name: "AWS Access Key", pattern: r"\bAKIA[0-9A-Z]{16}\b", severity: "Medium",
-        recommendation: "Rotate the key immediately. Use AWS IAM roles instead of hard-coded keys." },
-    SecretPattern { name: "AWS Secret Key", pattern: r"\b[0-9a-zA-Z/+]{40}\b", severity: "High",
-        recommendation: "Rotate the key immediately. Store secrets in AWS Secrets Manager." },
-    SecretPattern { name: "Google API Key", pattern: r"\bAIza[0-9A-Za-z\-_]{35}\b", severity: "Medium",
-        recommendation: "Rotate the key and implement API key restrictions." },
-    SecretPattern { name: "Google OAuth", pattern: r"[0-9]+-[0-9A-Za-z_]{32}\.apps\.googleusercontent\.com", severity: "Medium",
-        recommendation: "Review and potentially regenerate the OAuth credentials." },
-    SecretPattern { name: "Stripe API Key", pattern: r"\b(?:sk|pk)_(live|test)_[0-9a-zA-Z]{24,34}\b", severity: "High",
-        recommendation: "Rotate the key immediately. Only use server-side code for Stripe API." },
-    SecretPattern { name: "GitHub Token", pattern: r"\b(?:github|gh)(?:_pat)?_[0-9a-zA-Z]{36,40}\b", severity: "High",
-        recommendation: "Revoke and regenerate the token. Use GitHub Actions secrets for CI/CD." },
-    SecretPattern { name: "GitHub OAuth", pattern: r"\bgho_[0-9a-zA-Z]{36,40}\b", severity: "High",
-        recommendation: "Revoke and regenerate the OAuth token." },
-    SecretPattern { name: "Facebook Access Token", pattern: r"EAACEdEose0cBA[0-9A-Za-z]+", severity: "Medium",
-        recommendation: "Revoke the token and regenerate. Store tokens securely." },
-    SecretPattern { name: "JWT Token", pattern: r"eyJ[a-zA-Z0-9_\-]*\.[a-zA-Z0-9_\-]*\.[a-zA-Z0-9_\-]*", severity: "Medium",
-        recommendation: "If valid, rotate the token. Implement proper expiration." },
-    SecretPattern { name: "SSH Private Key", pattern: r"-----BEGIN\s+(?:RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY", severity: "High",
-        recommendation: "Generate a new key pair. Never store private keys in code." },
-    SecretPattern { name: "Password in URL", pattern: r"[a-zA-Z]{3,10}://[^/\s:@]{3,20}:[^/\s:@]{3,20}@.{1,100}", severity: "High",
-        recommendation: "Remove the password from the URL and use secure authentication." },
-    SecretPattern { name: "Firebase URL", pattern: r"https://[a-z0-9-]+\.firebaseio\.com", severity: "Low",
-        recommendation: "Review Firebase security rules and regenerate any associated secrets." },
-    SecretPattern { name: "MongoDB Connection String", pattern: r"mongodb(?:\+srv)?://[^/\s]+:[^/\s]+@[^/\s]+", severity: "High",
-        recommendation: "Rotate the password and use environment variables instead." },
-    SecretPattern { name: "Slack Token", pattern: r"xox[baprs]-[0-9a-zA-Z\-]{10,48}", severity: "Medium",
-        recommendation: "Revoke and regenerate the token." },
-    SecretPattern { name: "Slack Webhook", pattern: r"https://hooks\.slack\.com/services/T[a-zA-Z0-9_]+/B[a-zA-Z0-9_]+/[a-zA-Z0-9_]+", severity: "Medium",
-        recommendation: "Regenerate the webhook URL and store it securely." },
-    SecretPattern { name: "API Key", pattern: r#"(?i)\b(?:api[_\-]?key|apikey)\b\s*[=:]\s*["'`]([a-zA-Z0-9_\-\.]{16,64})["'`]"#, severity: "Medium",
-        recommendation: "Rotate the key. Store it in environment variables or a secrets manager." },
-    SecretPattern { name: "Secret Key", pattern: r#"(?i)\b(?:secret[_\-]?key|secretkey)\b\s*[=:]\s*["'`]([a-zA-Z0-9_\-\.]{16,64})["'`]"#, severity: "Medium",
-        recommendation: "Rotate the key and ensure it's stored in a secure vault." },
-    SecretPattern { name: "Auth Token", pattern: r#"(?i)\b(?:auth[_\-]?token|authtoken)\b\s*[=:]\s*["'`]([a-zA-Z0-9_\-\.]{16,64})["'`]"#, severity: "Medium",
-        recommendation: "Revoke the token and issue a new one." },
-    SecretPattern { name: "Access Token", pattern: r#"(?i)\b(?:access[_\-]?token|accesstoken)\b\s*[=:]\s*["'`]([a-zA-Z0-9_\-\.]{16,64})["'`]"#, severity: "Medium",
-        recommendation: "Revoke and regenerate the token." },
-    SecretPattern { name: "Encryption Key", pattern: r#"(?i)(?:encryption|aes|des|blowfish)[\s_-]?key[\s=:]+["'`][A-Za-z0-9+/]{16,}={0,2}["'`]"#, severity: "High",
-        recommendation: "Rotate the key and store it securely using a key management system." },
-    SecretPattern { name: "Stripe Publishable Key", pattern: r"\bpk_(live|test)_[0-9a-zA-Z]{24,34}\b", severity: "Low",
-        recommendation: "Publishable keys are public, but verify no secret keys are exposed nearby." },
-    SecretPattern { name: "Twitter Bearer", pattern: r"AAAAAAAAAAAAAAAAAAA[A-Za-z0-9%]+", severity: "Medium",
-        recommendation: "Rotate the bearer token. Use environment variables for storage." },
-    SecretPattern { name: "Password", pattern: r#"(?i)(?:password|passwd|pwd)[\s=:]+["'`]([^"'`\s]{8,64})["'`]"#, severity: "High",
-        recommendation: "Remove hardcoded passwords. Use a secrets manager or environment variables." },
-    SecretPattern { name: "Database Credentials", pattern: r#"(?i)(?:db_pass|db_password|database_password)[\s=:]+["'`]([^"'`\s]+)["'`]"#, severity: "High",
-        recommendation: "Change DB credentials immediately. Store in env vars or a vault." },
+    SecretPattern {
+        name: "AWS Access Key",
+        pattern: r"\bAKIA[0-9A-Z]{16}\b",
+        severity: "Medium",
+        recommendation: "Rotate the key immediately. Use AWS IAM roles instead of hard-coded keys.",
+    },
+    SecretPattern {
+        name: "AWS Secret Key",
+        pattern: r"\b[0-9a-zA-Z/+]{40}\b",
+        severity: "High",
+        recommendation: "Rotate the key immediately. Store secrets in AWS Secrets Manager.",
+    },
+    SecretPattern {
+        name: "Google API Key",
+        pattern: r"\bAIza[0-9A-Za-z\-_]{35}\b",
+        severity: "Medium",
+        recommendation: "Rotate the key and implement API key restrictions.",
+    },
+    SecretPattern {
+        name: "Google OAuth",
+        pattern: r"[0-9]+-[0-9A-Za-z_]{32}\.apps\.googleusercontent\.com",
+        severity: "Medium",
+        recommendation: "Review and potentially regenerate the OAuth credentials.",
+    },
+    SecretPattern {
+        name: "Stripe API Key",
+        pattern: r"\b(?:sk|pk)_(live|test)_[0-9a-zA-Z]{24,34}\b",
+        severity: "High",
+        recommendation: "Rotate the key immediately. Only use server-side code for Stripe API.",
+    },
+    SecretPattern {
+        name: "GitHub Token",
+        pattern: r"\b(?:github|gh)(?:_pat)?_[0-9a-zA-Z]{36,40}\b",
+        severity: "High",
+        recommendation: "Revoke and regenerate the token. Use GitHub Actions secrets for CI/CD.",
+    },
+    SecretPattern {
+        name: "GitHub OAuth",
+        pattern: r"\bgho_[0-9a-zA-Z]{36,40}\b",
+        severity: "High",
+        recommendation: "Revoke and regenerate the OAuth token.",
+    },
+    SecretPattern {
+        name: "Facebook Access Token",
+        pattern: r"EAACEdEose0cBA[0-9A-Za-z]+",
+        severity: "Medium",
+        recommendation: "Revoke the token and regenerate. Store tokens securely.",
+    },
+    SecretPattern {
+        name: "JWT Token",
+        pattern: r"eyJ[a-zA-Z0-9_\-]*\.[a-zA-Z0-9_\-]*\.[a-zA-Z0-9_\-]*",
+        severity: "Medium",
+        recommendation: "If valid, rotate the token. Implement proper expiration.",
+    },
+    SecretPattern {
+        name: "SSH Private Key",
+        pattern: r"-----BEGIN\s+(?:RSA|DSA|EC|OPENSSH)\s+PRIVATE\s+KEY",
+        severity: "High",
+        recommendation: "Generate a new key pair. Never store private keys in code.",
+    },
+    SecretPattern {
+        name: "Password in URL",
+        pattern: r"[a-zA-Z]{3,10}://[^/\s:@]{3,20}:[^/\s:@]{3,20}@.{1,100}",
+        severity: "High",
+        recommendation: "Remove the password from the URL and use secure authentication.",
+    },
+    SecretPattern {
+        name: "Firebase URL",
+        pattern: r"https://[a-z0-9-]+\.firebaseio\.com",
+        severity: "Low",
+        recommendation: "Review Firebase security rules and regenerate any associated secrets.",
+    },
+    SecretPattern {
+        name: "MongoDB Connection String",
+        pattern: r"mongodb(?:\+srv)?://[^/\s]+:[^/\s]+@[^/\s]+",
+        severity: "High",
+        recommendation: "Rotate the password and use environment variables instead.",
+    },
+    SecretPattern {
+        name: "Slack Token",
+        pattern: r"xox[baprs]-[0-9a-zA-Z\-]{10,48}",
+        severity: "Medium",
+        recommendation: "Revoke and regenerate the token.",
+    },
+    SecretPattern {
+        name: "Slack Webhook",
+        pattern: r"https://hooks\.slack\.com/services/T[a-zA-Z0-9_]+/B[a-zA-Z0-9_]+/[a-zA-Z0-9_]+",
+        severity: "Medium",
+        recommendation: "Regenerate the webhook URL and store it securely.",
+    },
+    SecretPattern {
+        name: "API Key",
+        pattern: r#"(?i)\b(?:api[_\-]?key|apikey)\b\s*[=:]\s*["'`]([a-zA-Z0-9_\-\.]{16,64})["'`]"#,
+        severity: "Medium",
+        recommendation: "Rotate the key. Store it in environment variables or a secrets manager.",
+    },
+    SecretPattern {
+        name: "Secret Key",
+        pattern: r#"(?i)\b(?:secret[_\-]?key|secretkey)\b\s*[=:]\s*["'`]([a-zA-Z0-9_\-\.]{16,64})["'`]"#,
+        severity: "Medium",
+        recommendation: "Rotate the key and ensure it's stored in a secure vault.",
+    },
+    SecretPattern {
+        name: "Auth Token",
+        pattern: r#"(?i)\b(?:auth[_\-]?token|authtoken)\b\s*[=:]\s*["'`]([a-zA-Z0-9_\-\.]{16,64})["'`]"#,
+        severity: "Medium",
+        recommendation: "Revoke the token and issue a new one.",
+    },
+    SecretPattern {
+        name: "Access Token",
+        pattern: r#"(?i)\b(?:access[_\-]?token|accesstoken)\b\s*[=:]\s*["'`]([a-zA-Z0-9_\-\.]{16,64})["'`]"#,
+        severity: "Medium",
+        recommendation: "Revoke and regenerate the token.",
+    },
+    SecretPattern {
+        name: "Encryption Key",
+        pattern: r#"(?i)(?:encryption|aes|des|blowfish)[\s_-]?key[\s=:]+["'`][A-Za-z0-9+/]{16,}={0,2}["'`]"#,
+        severity: "High",
+        recommendation: "Rotate the key and store it securely using a key management system.",
+    },
+    SecretPattern {
+        name: "Stripe Publishable Key",
+        pattern: r"\bpk_(live|test)_[0-9a-zA-Z]{24,34}\b",
+        severity: "Low",
+        recommendation:
+            "Publishable keys are public, but verify no secret keys are exposed nearby.",
+    },
+    SecretPattern {
+        name: "Twitter Bearer",
+        pattern: r"AAAAAAAAAAAAAAAAAAA[A-Za-z0-9%]+",
+        severity: "Medium",
+        recommendation: "Rotate the bearer token. Use environment variables for storage.",
+    },
+    SecretPattern {
+        name: "Password",
+        pattern: r#"(?i)(?:password|passwd|pwd)[\s=:]+["'`]([^"'`\s]{8,64})["'`]"#,
+        severity: "High",
+        recommendation:
+            "Remove hardcoded passwords. Use a secrets manager or environment variables.",
+    },
+    SecretPattern {
+        name: "Database Credentials",
+        pattern: r#"(?i)(?:db_pass|db_password|database_password)[\s=:]+["'`]([^"'`\s]+)["'`]"#,
+        severity: "High",
+        recommendation: "Change DB credentials immediately. Store in env vars or a vault.",
+    },
 ];
 
 // ── JS vulnerability patterns ───────────────────────────────────────────────
@@ -169,142 +306,197 @@ struct JsVulnCategory {
 
 const JS_VULN_CATEGORIES: &[JsVulnCategory] = &[
     JsVulnCategory {
-        name: "DOM XSS", severity: "High",
+        name: "DOM XSS",
+        severity: "High",
         patterns: &[
             r"document\.write\s*\(\s*.*?(?:location|URL|documentURI|referrer|href|search|hash)",
             r"\.innerHTML\s*=\s*.*?(?:location|URL|documentURI|referrer|href|search|hash)",
             r"\.outerHTML\s*=\s*.*?(?:location|URL|documentURI|referrer|href|search|hash)",
             r"eval\s*\(\s*.*?(?:location|URL|documentURI|referrer|href|search|hash)",
         ],
-        description: "DOM-based XSS: user-controllable data passed to a dynamic code execution sink.",
-        recommendation: "Sanitize all user inputs before DOM operations. Use DOMPurify or a strict CSP."
+        description:
+            "DOM-based XSS: user-controllable data passed to a dynamic code execution sink.",
+        recommendation:
+            "Sanitize all user inputs before DOM operations. Use DOMPurify or a strict CSP.",
     },
     JsVulnCategory {
-        name: "Open Redirect", severity: "High",
+        name: "Open Redirect",
+        severity: "High",
         patterns: &[
             r"(?:window\.)?location(?:\.href)?\s*=\s*.*?(?:user|input|param|arg)",
             r"(?:window\.)?location\.replace\s*\(\s*.*?(?:user|input|param|arg)",
             r"(?:window\.)?location\.assign\s*\(\s*.*?(?:user|input|param|arg)",
         ],
         description: "User input determines redirect destination, enabling phishing attacks.",
-        recommendation: "Implement a whitelist of allowed redirect URLs."
+        recommendation: "Implement a whitelist of allowed redirect URLs.",
     },
     JsVulnCategory {
-        name: "CORS Misconfiguration", severity: "Medium",
+        name: "CORS Misconfiguration",
+        severity: "Medium",
         patterns: &[
             r"Access-Control-Allow-Origin\s*:\s*\*",
             r"Access-Control-Allow-Origin\s*:\s*null",
             r"Access-Control-Allow-Credentials\s*:\s*true",
         ],
         description: "CORS misconfiguration can allow unauthorized cross-origin access.",
-        recommendation: "Be specific with CORS policies. Avoid wildcard origins."
+        recommendation: "Be specific with CORS policies. Avoid wildcard origins.",
     },
     JsVulnCategory {
-        name: "Insecure Cookie", severity: "Medium",
-        patterns: &[
-            r"document\.cookie\s*=",
-        ],
+        name: "Insecure Cookie",
+        severity: "Medium",
+        patterns: &[r"document\.cookie\s*="],
         description: "Cookies set without secure flags can be vulnerable to theft.",
-        recommendation: "Set 'Secure' and 'HttpOnly' flags on sensitive cookies."
+        recommendation: "Set 'Secure' and 'HttpOnly' flags on sensitive cookies.",
     },
     JsVulnCategory {
-        name: "Insecure Data Transmission", severity: "Medium",
-        patterns: &[
-            r#"\.postMessage\([^,]+,\s*["']\*["']\)"#,
-        ],
+        name: "Insecure Data Transmission",
+        severity: "Medium",
+        patterns: &[r#"\.postMessage\([^,]+,\s*["']\*["']\)"#],
         description: "Data transmitted insecurely via postMessage with wildcard origin.",
-        recommendation: "Use specific origin URLs with postMessage() and validate senders."
+        recommendation: "Use specific origin URLs with postMessage() and validate senders.",
     },
     JsVulnCategory {
-        name: "Prototype Pollution", severity: "Medium",
-        patterns: &[
-            r"__proto__\s*[=\[]",
-            r"prototype\[",
-        ],
+        name: "Prototype Pollution",
+        severity: "Medium",
+        patterns: &[r"__proto__\s*[=\[]", r"prototype\["],
         description: "Prototype pollution can lead to property injection attacks.",
-        recommendation: "Avoid user-controlled data with Object.assign()/prototype. Use Object.create(null)."
+        recommendation:
+            "Avoid user-controlled data with Object.assign()/prototype. Use Object.create(null).",
     },
     JsVulnCategory {
-        name: "Command Injection", severity: "High",
+        name: "Command Injection",
+        severity: "High",
         patterns: &[
             r"exec\s*\(\s*.*?(?:user|input|param|arg)",
             r"spawn\s*\(\s*.*?(?:user|input|param|arg)",
         ],
         description: "Command injection allows attackers to execute arbitrary commands.",
-        recommendation: "Avoid executing commands with user input. Implement strict validation."
+        recommendation: "Avoid executing commands with user input. Implement strict validation.",
     },
     JsVulnCategory {
-        name: "Insecure Data Storage", severity: "Low",
+        name: "Insecure Data Storage",
+        severity: "Low",
         patterns: &[
             r"localStorage\.setItem\(\s*[^,]+,\s*.*?(?:password|token|key|secret|credentials)",
             r"sessionStorage\.setItem\(\s*[^,]+,\s*.*?(?:password|token|key|secret|credentials)",
         ],
         description: "Sensitive data stored insecurely in client-side storage.",
-        recommendation: "Don't store sensitive info in localStorage/sessionStorage."
+        recommendation: "Don't store sensitive info in localStorage/sessionStorage.",
     },
     JsVulnCategory {
-        name: "Event Handler XSS", severity: "Medium",
-        patterns: &[
-            r#"\.setAttribute\(["']on\w+["']\s*,"#,
-        ],
+        name: "Event Handler XSS",
+        severity: "Medium",
+        patterns: &[r#"\.setAttribute\(["']on\w+["']\s*,"#],
         description: "Event handlers assigned dynamically can lead to XSS.",
-        recommendation: "Validate and sanitize data before assigning to event handlers."
+        recommendation: "Validate and sanitize data before assigning to event handlers.",
     },
     JsVulnCategory {
-        name: "CSP Bypass", severity: "Medium",
-        patterns: &[
-            r#"document\.createElement\(["']script["']\)"#,
-        ],
+        name: "CSP Bypass",
+        severity: "Medium",
+        patterns: &[r#"document\.createElement\(["']script["']\)"#],
         description: "Dynamic script creation may bypass Content Security Policy.",
-        recommendation: "Implement a strict CSP and avoid dynamic script creation with user input."
+        recommendation: "Implement a strict CSP and avoid dynamic script creation with user input.",
     },
     JsVulnCategory {
-        name: "WebSocket Insecurity", severity: "High",
-        patterns: &[
-            r#"new\s+WebSocket\(\s*["']ws://"#,
-        ],
+        name: "WebSocket Insecurity",
+        severity: "High",
+        patterns: &[r#"new\s+WebSocket\(\s*["']ws://"#],
         description: "Insecure WebSocket connections (ws://) can be intercepted.",
-        recommendation: "Use secure WebSocket connections (wss://) and validate data."
+        recommendation: "Use secure WebSocket connections (wss://) and validate data.",
     },
     JsVulnCategory {
-        name: "Insecure Crypto", severity: "High",
+        name: "Insecure Crypto",
+        severity: "High",
         patterns: &[
             r#"(?:createHash|crypto\.subtle).*?["'](?:md5|sha1)["']"#,
             r"Math\.random\(\)",
         ],
         description: "Weak cryptographic methods (MD5/SHA1/Math.random) in use.",
-        recommendation: "Use modern crypto algorithms. Use crypto.getRandomValues() instead of Math.random()."
+        recommendation:
+            "Use modern crypto algorithms. Use crypto.getRandomValues() instead of Math.random().",
     },
     JsVulnCategory {
-        name: "Path Traversal", severity: "Medium",
-        patterns: &[
-            r"\.\./|\.\.\\",
-        ],
+        name: "Path Traversal",
+        severity: "Medium",
+        patterns: &[r"\.\./|\.\.\\"],
         description: "Path traversal allows access to files outside the intended directory.",
-        recommendation: "Validate and sanitize file paths. Use allowlists."
+        recommendation: "Validate and sanitize file paths. Use allowlists.",
     },
 ];
 
 // ── SSRF parameters ─────────────────────────────────────────────────────────
 
 const SSRF_PARAMS: &[&str] = &[
-    "url", "uri", "link", "src", "href", "target", "destination",
-    "redirect", "redirect_to", "redirecturl", "redirect_uri",
-    "return", "return_to", "returnurl", "return_path", "path",
-    "load", "file", "filename", "folder", "folder_url",
-    "image", "img", "image_url", "image_path", "avatar",
-    "document", "doc", "document_url", "fetch", "get", "view",
-    "content", "domain", "callback", "reference", "site", "page",
-    "data", "data_url", "resource", "template", "api_endpoint",
-    "endpoint", "proxy", "feed", "host", "webhook", "address",
-    "media", "video", "audio", "download", "upload", "preview",
-    "source", "location", "goto", "callback_url", "forward",
-    "next", "origin", "continue",
+    "url",
+    "uri",
+    "link",
+    "src",
+    "href",
+    "target",
+    "destination",
+    "redirect",
+    "redirect_to",
+    "redirecturl",
+    "redirect_uri",
+    "return",
+    "return_to",
+    "returnurl",
+    "return_path",
+    "path",
+    "load",
+    "file",
+    "filename",
+    "folder",
+    "folder_url",
+    "image",
+    "img",
+    "image_url",
+    "image_path",
+    "avatar",
+    "document",
+    "doc",
+    "document_url",
+    "fetch",
+    "get",
+    "view",
+    "content",
+    "domain",
+    "callback",
+    "reference",
+    "site",
+    "page",
+    "data",
+    "data_url",
+    "resource",
+    "template",
+    "api_endpoint",
+    "endpoint",
+    "proxy",
+    "feed",
+    "host",
+    "webhook",
+    "address",
+    "media",
+    "video",
+    "audio",
+    "download",
+    "upload",
+    "preview",
+    "source",
+    "location",
+    "goto",
+    "callback_url",
+    "forward",
+    "next",
+    "origin",
+    "continue",
 ];
 
 // ── Main scanner ────────────────────────────────────────────────────────────
 
-pub async fn scan_content(domain: &str) -> Result<ScannerResult, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn scan_content(
+    domain: &str,
+) -> Result<ScannerResult, Box<dyn std::error::Error + Send + Sync>> {
     let base_url = if domain.starts_with("http") {
         domain.to_string()
     } else {
@@ -329,13 +521,17 @@ pub async fn scan_content(domain: &str) -> Result<ScannerResult, Box<dyn std::er
     let max_pages: usize = 50;
 
     // Compile regex patterns once
-    let secret_regexes: Vec<(&SecretPattern, Regex)> = SECRET_PATTERNS.iter()
+    let secret_regexes: Vec<(&SecretPattern, Regex)> = SECRET_PATTERNS
+        .iter()
         .filter_map(|sp| Regex::new(sp.pattern).ok().map(|r| (sp, r)))
         .collect();
 
-    let js_vuln_regexes: Vec<(&JsVulnCategory, Vec<Regex>)> = JS_VULN_CATEGORIES.iter()
+    let js_vuln_regexes: Vec<(&JsVulnCategory, Vec<Regex>)> = JS_VULN_CATEGORIES
+        .iter()
         .map(|cat| {
-            let rxs: Vec<Regex> = cat.patterns.iter()
+            let rxs: Vec<Regex> = cat
+                .patterns
+                .iter()
                 .filter_map(|p| Regex::new(p).ok())
                 .collect();
             (cat, rxs)
@@ -344,10 +540,25 @@ pub async fn scan_content(domain: &str) -> Result<ScannerResult, Box<dyn std::er
 
     // API endpoint extraction patterns
     let api_regexes: Vec<Regex> = [
-        r"/api/v\d+/", r"/api/", r"/graphql", r"/rest/", r"/v\d+/\w+",
-        r"/service/", r"/json/", r"/rpc/", r"/gateway/", r"/ajax/",
-        r"/data/", r"/query/", r"/feeds/", r"/svc/", r"/soap/",
-    ].iter().filter_map(|p| Regex::new(p).ok()).collect();
+        r"/api/v\d+/",
+        r"/api/",
+        r"/graphql",
+        r"/rest/",
+        r"/v\d+/\w+",
+        r"/service/",
+        r"/json/",
+        r"/rpc/",
+        r"/gateway/",
+        r"/ajax/",
+        r"/data/",
+        r"/query/",
+        r"/feeds/",
+        r"/svc/",
+        r"/soap/",
+    ]
+    .iter()
+    .filter_map(|p| Regex::new(p).ok())
+    .collect();
 
     // ── Parse robots.txt ─────────────────────────────────────────────
     let mut disallowed: Vec<String> = Vec::new();
@@ -412,9 +623,12 @@ pub async fn scan_content(domain: &str) -> Result<ScannerResult, Box<dyn std::er
             Ok(r) => r,
             Err(_) => continue,
         };
-        if !resp.status().is_success() { continue; }
+        if !resp.status().is_success() {
+            continue;
+        }
 
-        let content_type = resp.headers()
+        let content_type = resp
+            .headers()
             .get("content-type")
             .and_then(|v| v.to_str().ok())
             .unwrap_or("")
@@ -493,7 +707,8 @@ pub async fn scan_content(domain: &str) -> Result<ScannerResult, Box<dyn std::er
             }
 
             // ── Check meta CSP for weak policies ────────────────────────
-            let meta_sel = Selector::parse(r#"meta[http-equiv="Content-Security-Policy"]"#).unwrap();
+            let meta_sel =
+                Selector::parse(r#"meta[http-equiv="Content-Security-Policy"]"#).unwrap();
             for meta in doc.select(&meta_sel) {
                 if let Some(content) = meta.value().attr("content") {
                     let c_lower = content.to_lowercase();
@@ -504,14 +719,18 @@ pub async fn scan_content(domain: &str) -> Result<ScannerResult, Box<dyn std::er
                             source_url: url.clone(),
                             matched_code: content.to_string(),
                             description: "CSP allows unsafe-inline or unsafe-eval.".into(),
-                            recommendation: "Remove unsafe-inline and unsafe-eval from your CSP.".into(),
+                            recommendation: "Remove unsafe-inline and unsafe-eval from your CSP."
+                                .into(),
                         });
                     }
                 }
             }
 
             // ── Check forms for missing CSRF tokens ─────────────────────
-            let csrf_sel = Selector::parse(r#"input[name*="csrf" i], input[name*="xsrf" i], input[name*="token" i]"#).unwrap();
+            let csrf_sel = Selector::parse(
+                r#"input[name*="csrf" i], input[name*="xsrf" i], input[name*="token" i]"#,
+            )
+            .unwrap();
             for form in doc.select(&form_sel) {
                 if form.select(&csrf_sel).next().is_none() {
                     js_vulns.push(JsVulnerability {
@@ -524,7 +743,6 @@ pub async fn scan_content(domain: &str) -> Result<ScannerResult, Box<dyn std::er
                     });
                 }
             }
-
         } else if content_type.contains("javascript") || url.ends_with(".js") {
             if !is_known_library(&url) {
                 js_file_urls.insert(url.clone());
@@ -536,14 +754,21 @@ pub async fn scan_content(domain: &str) -> Result<ScannerResult, Box<dyn std::er
 
     // ── Fetch & analyze external JS files ────────────────────────────────
     for js_url in &js_file_urls {
-        if visited.contains(js_url) { continue; }
+        if visited.contains(js_url) {
+            continue;
+        }
         if let Ok(resp) = client.get(js_url).send().await {
             if resp.status().is_success() {
                 if let Ok(js_body) = resp.text().await {
                     if js_body.len() > 10 {
                         scan_js_security(&js_body, js_url, &js_vuln_regexes, &mut js_vulns);
                         scan_for_secrets(&js_body, js_url, &secret_regexes, &mut secrets);
-                        extract_api_endpoints(&js_body, &base_url, &api_regexes, &mut api_endpoints);
+                        extract_api_endpoints(
+                            &js_body,
+                            &base_url,
+                            &api_regexes,
+                            &mut api_endpoints,
+                        );
                     }
                 }
             }
@@ -552,8 +777,10 @@ pub async fn scan_content(domain: &str) -> Result<ScannerResult, Box<dyn std::er
 
     // ── Probe discovered API endpoints for SSRF ─────────────────────────
     let ssrf_probes = payloads::lines(payloads::SSRF);
-    for endpoint in api_endpoints.iter().take(20) { // limit to 20 to avoid flooding
-        for probe in ssrf_probes.iter().take(5) { // top 5 probes per endpoint
+    for endpoint in api_endpoints.iter().take(20) {
+        // limit to 20 to avoid flooding
+        for probe in ssrf_probes.iter().take(5) {
+            // top 5 probes per endpoint
             let test_url = format!("{}?url={}", endpoint, probe);
             if let Ok(resp) = client.get(&test_url).header("Accept", "*/*").send().await {
                 // Check if response indicates SSRF (redirect to our probe)
@@ -566,7 +793,10 @@ pub async fn scan_content(domain: &str) -> Result<ScannerResult, Box<dyn std::er
                                     severity: "High".into(),
                                     source_url: endpoint.clone(),
                                     vulnerable_params: vec!["url".into()],
-                                    description: format!("API endpoint redirects to SSRF probe: {}", loc_str),
+                                    description: format!(
+                                        "API endpoint redirects to SSRF probe: {}",
+                                        loc_str
+                                    ),
                                 });
                             }
                         }
@@ -616,8 +846,10 @@ fn scan_for_secrets(
             let entropy = shannon_entropy(value);
 
             // Skip low-entropy matches for key-type secrets
-            if matches!(sp.name, "AWS Secret Key" | "Google API Key" | "API Key" | "Secret Key")
-                && entropy < 3.5
+            if matches!(
+                sp.name,
+                "AWS Secret Key" | "Google API Key" | "API Key" | "Secret Key"
+            ) && entropy < 3.5
             {
                 continue;
             }
@@ -626,7 +858,9 @@ fn scan_for_secrets(
             let ctx_start = m.start().saturating_sub(80);
             let ctx_end = (m.end() + 80).min(content.len());
             let context = &content[ctx_start..ctx_end];
-            if is_false_positive_context(context) { continue; }
+            if is_false_positive_context(context) {
+                continue;
+            }
 
             results.push(SecretFinding {
                 secret_type: sp.name.to_string(),
@@ -652,13 +886,19 @@ fn scan_js_security(
 
     for (cat, rxs) in categories {
         // For minified files, only check high-severity issues
-        if is_minified && cat.severity != "High" { continue; }
+        if is_minified && cat.severity != "High" {
+            continue;
+        }
 
         for rx in rxs {
             for m in rx.find_iter(content) {
                 let matched = m.as_str();
                 // Limit matched_code length
-                let display = if matched.len() > 200 { &matched[..200] } else { matched };
+                let display = if matched.len() > 200 {
+                    &matched[..200]
+                } else {
+                    matched
+                };
 
                 results.push(JsVulnerability {
                     vuln_type: cat.name.to_string(),
@@ -675,12 +915,22 @@ fn scan_js_security(
 
 fn dedup_secrets(v: &mut Vec<SecretFinding>) {
     let mut seen = HashSet::new();
-    v.retain(|s| seen.insert(format!("{}:{}:{}", s.secret_type, s.source_url, s.masked_value)));
+    v.retain(|s| {
+        seen.insert(format!(
+            "{}:{}:{}",
+            s.secret_type, s.source_url, s.masked_value
+        ))
+    });
 }
 
 fn dedup_js_vulns(v: &mut Vec<JsVulnerability>) {
     let mut seen = HashSet::new();
-    v.retain(|j| seen.insert(format!("{}:{}:{}", j.vuln_type, j.source_url, j.matched_code)));
+    v.retain(|j| {
+        seen.insert(format!(
+            "{}:{}:{}",
+            j.vuln_type, j.source_url, j.matched_code
+        ))
+    });
 }
 
 fn check_url_params_ssrf(url: &str, findings: &mut Vec<SsrfFinding>) {
@@ -723,7 +973,11 @@ fn extract_api_endpoints(
 }
 
 fn resolve_url(base: &str, href: &str) -> Option<String> {
-    if href.starts_with("javascript:") || href.starts_with('#') || href.starts_with("mailto:") || href.starts_with("tel:") {
+    if href.starts_with("javascript:")
+        || href.starts_with('#')
+        || href.starts_with("mailto:")
+        || href.starts_with("tel:")
+    {
         return None;
     }
     if href.starts_with("//") {

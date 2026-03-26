@@ -52,7 +52,9 @@ async fn resolve_record(domain: &str, record_type: &str) -> Vec<String> {
 
 // ── Main function ───────────────────────────────────────────────────────────
 
-pub async fn get_dns_records(domain: &str) -> Result<DomainDnsResult, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn get_dns_records(
+    domain: &str,
+) -> Result<DomainDnsResult, Box<dyn std::error::Error + Send + Sync>> {
     let start_time = Instant::now();
 
     // Run all 7 record types concurrently
@@ -71,7 +73,15 @@ pub async fn get_dns_records(domain: &str) -> Result<DomainDnsResult, Box<dyn st
     Ok(DomainDnsResult {
         timestamp: chrono::Utc::now().to_rfc3339(),
         domain: domain.to_string(),
-        records: DnsRecords { a, aaaa, mx, ns, soa, txt, cname },
+        records: DnsRecords {
+            a,
+            aaaa,
+            mx,
+            ns,
+            soa,
+            txt,
+            cname,
+        },
         response_time_ms: duration,
     })
 }

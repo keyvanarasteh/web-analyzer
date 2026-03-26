@@ -1,38 +1,44 @@
+use regex::Regex;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::time::Duration;
-use regex::Regex;
 
 /// Known Cloudflare IPv4 CIDR ranges (simplified to prefix checks)
 const CF_PREFIXES: &[&str] = &[
-    "173.245.", "103.21.", "103.22.", "103.31.", "141.101.",
-    "108.162.", "190.93.", "188.114.", "197.234.", "198.41.",
-    "162.158.", "162.159.", "104.16.", "104.17.", "104.18.",
-    "104.19.", "104.20.", "104.21.", "104.22.", "104.23.",
-    "104.24.", "104.25.", "104.26.", "104.27.", "172.64.",
-    "172.65.", "172.66.", "172.67.", "131.0.",
+    "173.245.", "103.21.", "103.22.", "103.31.", "141.101.", "108.162.", "190.93.", "188.114.",
+    "197.234.", "198.41.", "162.158.", "162.159.", "104.16.", "104.17.", "104.18.", "104.19.",
+    "104.20.", "104.21.", "104.22.", "104.23.", "104.24.", "104.25.", "104.26.", "104.27.",
+    "172.64.", "172.65.", "172.66.", "172.67.", "131.0.",
 ];
 
 /// Headers that may leak origin IPs
 const HEADERS_TO_CHECK: &[&str] = &[
-    "x-forwarded-for", "x-real-ip", "x-origin-ip", "cf-connecting-ip",
-    "x-server-ip", "server-ip", "x-backend-server", "x-origin-server",
+    "x-forwarded-for",
+    "x-real-ip",
+    "x-origin-ip",
+    "cf-connecting-ip",
+    "x-server-ip",
+    "server-ip",
+    "x-backend-server",
+    "x-origin-server",
 ];
 
 /// IP history lookup sources
 const IP_HISTORY_SOURCES: &[(&str, &str)] = &[
     ("ViewDNS", "https://viewdns.info/iphistory/?domain={}"),
-    ("SecurityTrails", "https://securitytrails.com/domain/{}/history/a"),
+    (
+        "SecurityTrails",
+        "https://securitytrails.com/domain/{}/history/a",
+    ),
     ("WhoIs", "https://who.is/whois/{}"),
 ];
 
 /// Private IP prefixes (RFC 1918 + loopback + link-local)
 const PRIVATE_PREFIXES: &[&str] = &[
-    "10.", "172.16.", "172.17.", "172.18.", "172.19.",
-    "172.20.", "172.21.", "172.22.", "172.23.", "172.24.",
-    "172.25.", "172.26.", "172.27.", "172.28.", "172.29.",
-    "172.30.", "172.31.", "192.168.", "127.", "0.", "169.254.",
+    "10.", "172.16.", "172.17.", "172.18.", "172.19.", "172.20.", "172.21.", "172.22.", "172.23.",
+    "172.24.", "172.25.", "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.",
+    "192.168.", "127.", "0.", "169.254.",
 ];
 
 // ── Structs ─────────────────────────────────────────────────────────────────
@@ -68,7 +74,9 @@ fn is_private_ip(ip: &str) -> bool {
 
 fn is_valid_ip(ip: &str) -> bool {
     let parts: Vec<&str> = ip.split('.').collect();
-    if parts.len() != 4 { return false; }
+    if parts.len() != 4 {
+        return false;
+    }
     parts.iter().all(|p| p.parse::<u8>().is_ok())
 }
 
@@ -84,7 +92,9 @@ fn confidence_score(c: &str) -> u8 {
 
 // ── Main scanner ────────────────────────────────────────────────────────────
 
-pub async fn find_real_ip(domain: &str) -> Result<CloudflareBypassResult, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn find_real_ip(
+    domain: &str,
+) -> Result<CloudflareBypassResult, Box<dyn std::error::Error + Send + Sync>> {
     let start = std::time::Instant::now();
 
     let clean_domain = domain
@@ -128,9 +138,11 @@ pub async fn find_real_ip(domain: &str) -> Result<CloudflareBypassResult, Box<dy
     // Only run bypass techniques if CF-protected
     if cloudflare_protected {
         // ── 2. Check common + domain-specific subdomains ────────────────
-        let mut subdomains: Vec<String> = vec![
-            "direct", "origin", "api", "mail", "cpanel", "server", "ftp",
-        ].into_iter().map(|s| s.to_string()).collect();
+        let mut subdomains: Vec<String> =
+            vec!["direct", "origin", "api", "mail", "cpanel", "server", "ftp"]
+                .into_iter()
+                .map(|s| s.to_string())
+                .collect();
 
         // Domain-specific subdomains
         let name_part = clean_domain.split('.').next().unwrap_or("");
@@ -229,9 +241,16 @@ async fn check_ip_history(client: &Client, domain: &str, ip_regex: &Regex) -> Ve
 
     for (name, url_template) in IP_HISTORY_SOURCES {
         let url = url_template.replace("{}", domain);
-        let resp = match client.get(&url)
-            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        let resp = match client
+            .get(&url)
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            )
+            .header(
+                "Accept",
+                "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            )
             .header("Referer", "https://www.google.com/")
             .send()
             .await
@@ -240,12 +259,19 @@ async fn check_ip_history(client: &Client, domain: &str, ip_regex: &Regex) -> Ve
             _ => continue,
         };
 
-        let body = match resp.text().await { Ok(t) => t, Err(_) => continue };
+        let body = match resp.text().await {
+            Ok(t) => t,
+            Err(_) => continue,
+        };
 
         let mut seen = HashSet::new();
         for cap in ip_regex.find_iter(&body) {
             let ip = cap.as_str().to_string();
-            if is_valid_ip(&ip) && !is_cloudflare_ip(&ip) && !is_private_ip(&ip) && seen.insert(ip.clone()) {
+            if is_valid_ip(&ip)
+                && !is_cloudflare_ip(&ip)
+                && !is_private_ip(&ip)
+                && seen.insert(ip.clone())
+            {
                 results.push(FoundIp {
                     ip,
                     source: format!("history_{}", name),
@@ -267,7 +293,9 @@ async fn verify_ip(ip: &str) -> String {
     match tokio::time::timeout(
         Duration::from_secs(3),
         tokio::net::TcpStream::connect(&addr),
-    ).await {
+    )
+    .await
+    {
         Ok(Ok(_)) => "active".into(),
         _ => "inactive".into(),
     }
@@ -281,6 +309,9 @@ impl qicro_data_core::registry::Registrable for FoundIp {
 
 impl qicro_data_core::registry::Registrable for CloudflareBypassResult {
     fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("CloudflareBypassResult", "cloudflarebypassresult")
+        qicro_data_core::registry::ModelMeta::new(
+            "CloudflareBypassResult",
+            "cloudflarebypassresult",
+        )
     }
 }

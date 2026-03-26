@@ -1,17 +1,26 @@
+use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use regex::Regex;
 
 // ── Tracking tool detection patterns ────────────────────────────────────────
 
 const TRACKING_TOOLS: &[(&str, &[&str])] = &[
-    ("Google Tag Manager", &["googletagmanager.com/gtm.js", "dataLayer"]),
-    ("Google Ads", &["googleads.g.doubleclick.net", "googlesyndication.com"]),
+    (
+        "Google Tag Manager",
+        &["googletagmanager.com/gtm.js", "dataLayer"],
+    ),
+    (
+        "Google Ads",
+        &["googleads.g.doubleclick.net", "googlesyndication.com"],
+    ),
     ("Facebook Pixel", &["connect.facebook.net", "fbq("]),
-    ("LinkedIn Insight", &["snap.licdn.com", "_linkedin_partner_id"]),
+    (
+        "LinkedIn Insight",
+        &["snap.licdn.com", "_linkedin_partner_id"],
+    ),
     ("TikTok Pixel", &["analytics.tiktok.com", "ttq."]),
     ("Hotjar", &["static.hotjar.com", "hjid"]),
     ("Mixpanel", &["cdn.mxpnl.com", "mixpanel.init"]),
@@ -182,9 +191,14 @@ pub struct SeoScoreResult {
 
 // ── Main function ───────────────────────────────────────────────────────────
 
-pub async fn analyze_advanced_seo(domain: &str) -> Result<SeoAnalysisResult, Box<dyn std::error::Error + Send + Sync>> {
-    let url = if domain.starts_with("http") { domain.to_string() }
-        else { format!("https://{}", domain) };
+pub async fn analyze_advanced_seo(
+    domain: &str,
+) -> Result<SeoAnalysisResult, Box<dyn std::error::Error + Send + Sync>> {
+    let url = if domain.starts_with("http") {
+        domain.to_string()
+    } else {
+        format!("https://{}", domain)
+    };
 
     let client = Client::builder()
         .timeout(Duration::from_secs(20))
@@ -202,7 +216,10 @@ pub async fn analyze_advanced_seo(domain: &str) -> Result<SeoAnalysisResult, Box
     let content_bytes = resp.bytes().await?;
     let content_size = content_bytes.len();
     let html_text = String::from_utf8_lossy(&content_bytes).to_string();
-    let base_domain = domain.replace("https://", "").replace("http://", "").replace("www.", "");
+    let base_domain = domain
+        .replace("https://", "")
+        .replace("http://", "")
+        .replace("www.", "");
 
     // ── 8. SEO Resources (await before parsing HTML to avoid Send bounds) ──
     let seo_resources = check_seo_resources(&client, domain).await;
@@ -216,7 +233,13 @@ pub async fn analyze_advanced_seo(domain: &str) -> Result<SeoAnalysisResult, Box
     let content_analysis = analyze_content(&document);
 
     // ── 3. Technical SEO ────────────────────────────────────────────────
-    let technical_seo = analyze_technical(&document, status_code, content_size, redirects as usize, &base_domain);
+    let technical_seo = analyze_technical(
+        &document,
+        status_code,
+        content_size,
+        redirects as usize,
+        &base_domain,
+    );
 
     // ── 4. Social Media Tags ────────────────────────────────────────────
     let social_media = analyze_social_tags(&document);
@@ -244,15 +267,29 @@ pub async fn analyze_advanced_seo(domain: &str) -> Result<SeoAnalysisResult, Box
 
     // ── 13. SEO Score ───────────────────────────────────────────────────
     let seo_score = calculate_seo_score(
-        &basic_seo, &content_analysis, &seo_resources, &schema_markup,
-        &performance, &mobile_accessibility,
+        &basic_seo,
+        &content_analysis,
+        &seo_resources,
+        &schema_markup,
+        &performance,
+        &mobile_accessibility,
     );
 
     Ok(SeoAnalysisResult {
         domain: domain.to_string(),
-        basic_seo, content_analysis, technical_seo, social_media,
-        analytics, performance, mobile_accessibility, seo_resources,
-        schema_markup, link_analysis, image_seo, page_speed_factors, seo_score,
+        basic_seo,
+        content_analysis,
+        technical_seo,
+        social_media,
+        analytics,
+        performance,
+        mobile_accessibility,
+        seo_resources,
+        schema_markup,
+        link_analysis,
+        image_seo,
+        page_speed_factors,
+        seo_score,
     })
 }
 
@@ -260,31 +297,60 @@ pub async fn analyze_advanced_seo(domain: &str) -> Result<SeoAnalysisResult, Box
 
 fn analyze_basic_seo(doc: &Html) -> BasicSeoResult {
     let title_sel = Selector::parse("title").unwrap();
-    let title_text = doc.select(&title_sel).next()
+    let title_text = doc
+        .select(&title_sel)
+        .next()
         .map(|el| el.text().collect::<String>().trim().to_string())
         .unwrap_or_default();
 
     let title_len = title_text.len();
-    let title_status = if title_text.is_empty() { "Missing" }
-        else if title_len < 30 { "Too short" }
-        else if title_len > 60 { "Too long" }
-        else { "Good" };
+    let title_status = if title_text.is_empty() {
+        "Missing"
+    } else if title_len < 30 {
+        "Too short"
+    } else if title_len > 60 {
+        "Too long"
+    } else {
+        "Good"
+    };
 
     let desc = get_meta_content(doc, "name", "description");
     let desc_len = if desc == "Not Found" { 0 } else { desc.len() };
-    let desc_status = if desc == "Not Found" { "Missing" }
-        else if desc_len < 120 { "Too short" }
-        else if desc_len > 160 { "Too long" }
-        else { "Good" };
+    let desc_status = if desc == "Not Found" {
+        "Missing"
+    } else if desc_len < 120 {
+        "Too short"
+    } else if desc_len > 160 {
+        "Too long"
+    } else {
+        "Good"
+    };
 
     BasicSeoResult {
-        title: TitleAnalysis { text: if title_text.is_empty() { "Missing".into() } else { title_text }, length: title_len, status: title_status.into() },
-        meta_description: MetaDescAnalysis { text: desc.clone(), length: desc_len, status: desc_status.into() },
+        title: TitleAnalysis {
+            text: if title_text.is_empty() {
+                "Missing".into()
+            } else {
+                title_text
+            },
+            length: title_len,
+            status: title_status.into(),
+        },
+        meta_description: MetaDescAnalysis {
+            text: desc.clone(),
+            length: desc_len,
+            status: desc_status.into(),
+        },
         meta_keywords: get_meta_content(doc, "name", "keywords"),
         canonical_url: get_link_href(doc, "canonical"),
         meta_robots: get_meta_content(doc, "name", "robots"),
         viewport: get_meta_content(doc, "name", "viewport"),
-        language: doc.root_element().value().attr("lang").unwrap_or("Not specified").to_string(),
+        language: doc
+            .root_element()
+            .value()
+            .attr("lang")
+            .unwrap_or("Not specified")
+            .to_string(),
         charset: get_charset(doc),
     }
 }
@@ -324,7 +390,10 @@ fn get_charset(doc: &Html) -> String {
     if let Ok(sel) = Selector::parse("meta[http-equiv=\"Content-Type\"]") {
         if let Some(el) = doc.select(&sel).next() {
             if let Some(content) = el.value().attr("content") {
-                if let Some(cs) = Regex::new(r"charset=([^;]+)").ok().and_then(|r| r.captures(content)) {
+                if let Some(cs) = Regex::new(r"charset=([^;]+)")
+                    .ok()
+                    .and_then(|r| r.captures(content))
+                {
                     return cs.get(1).unwrap().as_str().to_string();
                 }
             }
@@ -351,11 +420,21 @@ fn analyze_content(doc: &Html) -> ContentAnalysisResult {
     for (i, sel) in &h_selectors {
         let elements: Vec<_> = doc.select(sel).collect();
         if !elements.is_empty() {
-            let texts: Vec<String> = elements.iter()
+            let texts: Vec<String> = elements
+                .iter()
                 .take(3)
-                .map(|e| { let t = e.text().collect::<String>(); t.trim().chars().take(100).collect() })
+                .map(|e| {
+                    let t = e.text().collect::<String>();
+                    t.trim().chars().take(100).collect()
+                })
                 .collect();
-            headings.insert(format!("H{}", i), HeadingInfo { count: elements.len(), texts });
+            headings.insert(
+                format!("H{}", i),
+                HeadingInfo {
+                    count: elements.len(),
+                    texts,
+                },
+            );
             for e in &elements {
                 let t = e.text().collect::<String>().trim().to_string();
                 hierarchy.push((*i, t));
@@ -374,13 +453,24 @@ fn analyze_content(doc: &Html) -> ContentAnalysisResult {
 
     let html_len = doc.html().len();
     let text_len = text.len();
-    let ratio = if html_len > 0 { (text_len as f64 / html_len as f64) * 100.0 } else { 0.0 };
+    let ratio = if html_len > 0 {
+        (text_len as f64 / html_len as f64) * 100.0
+    } else {
+        0.0
+    };
 
     let top_keywords = analyze_keyword_density(&words);
 
     ContentAnalysisResult {
-        headings, heading_issues, word_count,
-        word_count_status: if word_count >= 300 { "Good" } else { "Too short" }.into(),
+        headings,
+        heading_issues,
+        word_count,
+        word_count_status: if word_count >= 300 {
+            "Good"
+        } else {
+            "Too short"
+        }
+        .into(),
         paragraphs,
         text_to_html_ratio: format!("{:.1}%", ratio),
         top_keywords,
@@ -389,16 +479,25 @@ fn analyze_content(doc: &Html) -> ContentAnalysisResult {
 
 fn check_heading_issues(hierarchy: &[(u8, String)]) -> Vec<String> {
     let mut issues = Vec::new();
-    if hierarchy.is_empty() { issues.push("No headings found".into()); return issues; }
+    if hierarchy.is_empty() {
+        issues.push("No headings found".into());
+        return issues;
+    }
 
     let h1_count = hierarchy.iter().filter(|(l, _)| *l == 1).count();
-    if h1_count == 0 { issues.push("Missing H1 tag".into()); }
-    else if h1_count > 1 { issues.push(format!("Multiple H1 tags ({})", h1_count)); }
+    if h1_count == 0 {
+        issues.push("Missing H1 tag".into());
+    } else if h1_count > 1 {
+        issues.push(format!("Multiple H1 tags ({})", h1_count));
+    }
 
     let mut prev = 0u8;
     for &(level, _) in hierarchy {
         if prev > 0 && level > prev + 1 {
-            issues.push(format!("Skipped heading level (from H{} to H{})", prev, level));
+            issues.push(format!(
+                "Skipped heading level (from H{} to H{})",
+                prev, level
+            ));
         }
         prev = level;
     }
@@ -407,7 +506,9 @@ fn check_heading_issues(hierarchy: &[(u8, String)]) -> Vec<String> {
 
 fn analyze_keyword_density(words: &[&str]) -> Vec<KeywordInfo> {
     let total = words.len();
-    if total == 0 { return vec![]; }
+    if total == 0 {
+        return vec![];
+    }
 
     let mut freq: HashMap<String, usize> = HashMap::new();
     for &w in words {
@@ -420,46 +521,87 @@ fn analyze_keyword_density(words: &[&str]) -> Vec<KeywordInfo> {
     let mut sorted: Vec<_> = freq.into_iter().collect();
     sorted.sort_by(|a, b| b.1.cmp(&a.1));
 
-    sorted.into_iter().take(5).map(|(word, count)| {
-        KeywordInfo { word, count, density: format!("{:.2}%", (count as f64 / total as f64) * 100.0) }
-    }).collect()
+    sorted
+        .into_iter()
+        .take(5)
+        .map(|(word, count)| KeywordInfo {
+            word,
+            count,
+            density: format!("{:.2}%", (count as f64 / total as f64) * 100.0),
+        })
+        .collect()
 }
 
 // ── 3. Technical SEO ────────────────────────────────────────────────────────
 
-fn analyze_technical(doc: &Html, status: u16, size: usize, redirects: usize, base_domain: &str) -> TechnicalSeoResult {
+fn analyze_technical(
+    doc: &Html,
+    status: u16,
+    size: usize,
+    redirects: usize,
+    base_domain: &str,
+) -> TechnicalSeoResult {
     let link_sel = Selector::parse("a[href]").unwrap();
     let mut internal = 0;
     let mut external = 0;
 
     for el in doc.select(&link_sel) {
         if let Some(href) = el.value().attr("href") {
-            if href.starts_with("http") && !href.contains(base_domain) { external += 1; }
-            else if !href.starts_with("mailto:") && !href.starts_with("tel:") && !href.starts_with('#') { internal += 1; }
+            if href.starts_with("http") && !href.contains(base_domain) {
+                external += 1;
+            } else if !href.starts_with("mailto:")
+                && !href.starts_with("tel:")
+                && !href.starts_with('#')
+            {
+                internal += 1;
+            }
         }
     }
 
-    let json_ld = Selector::parse("script[type=\"application/ld+json\"]").ok()
-        .map(|s| doc.select(&s).count()).unwrap_or(0);
-    let microdata = Selector::parse("[itemtype]").ok()
-        .map(|s| doc.select(&s).count()).unwrap_or(0);
+    let json_ld = Selector::parse("script[type=\"application/ld+json\"]")
+        .ok()
+        .map(|s| doc.select(&s).count())
+        .unwrap_or(0);
+    let microdata = Selector::parse("[itemtype]")
+        .ok()
+        .map(|s| doc.select(&s).count())
+        .unwrap_or(0);
 
-    let breadcrumb = Selector::parse("[typeof=\"BreadcrumbList\"]").ok()
-        .map(|s| doc.select(&s).next().is_some()).unwrap_or(false)
+    let breadcrumb = Selector::parse("[typeof=\"BreadcrumbList\"]")
+        .ok()
+        .map(|s| doc.select(&s).next().is_some())
+        .unwrap_or(false)
         || doc.html().to_lowercase().contains("breadcrumb");
 
     TechnicalSeoResult {
-        page_size_bytes: size, http_status: status, redirects,
-        internal_links: internal, external_links: external,
-        structured_data_count: json_ld + microdata, has_breadcrumbs: breadcrumb,
+        page_size_bytes: size,
+        http_status: status,
+        redirects,
+        internal_links: internal,
+        external_links: external,
+        structured_data_count: json_ld + microdata,
+        has_breadcrumbs: breadcrumb,
     }
 }
 
 // ── 4. Social Media Tags ────────────────────────────────────────────────────
 
 fn analyze_social_tags(doc: &Html) -> SocialMediaResult {
-    let og_keys = ["og:title", "og:description", "og:image", "og:url", "og:type", "og:site_name"];
-    let tw_keys = ["twitter:card", "twitter:title", "twitter:description", "twitter:image", "twitter:site"];
+    let og_keys = [
+        "og:title",
+        "og:description",
+        "og:image",
+        "og:url",
+        "og:type",
+        "og:site_name",
+    ];
+    let tw_keys = [
+        "twitter:card",
+        "twitter:title",
+        "twitter:description",
+        "twitter:image",
+        "twitter:site",
+    ];
 
     let mut og = HashMap::new();
     for key in &og_keys {
@@ -471,7 +613,10 @@ fn analyze_social_tags(doc: &Html) -> SocialMediaResult {
         tw.insert(key.to_string(), get_meta_content(doc, "name", key));
     }
 
-    SocialMediaResult { open_graph: og, twitter_cards: tw }
+    SocialMediaResult {
+        open_graph: og,
+        twitter_cards: tw,
+    }
 }
 
 // ── 5. Analytics & Tracking ─────────────────────────────────────────────────
@@ -480,16 +625,31 @@ fn analyze_analytics(html: &str) -> HashMap<String, String> {
     let mut results = HashMap::new();
 
     // Google Analytics
-    let has_ga4 = Regex::new(r#"gtag\(['"]config['"],\s*['"]G-[A-Z0-9]+['"]\)"#).ok().map(|r| r.is_match(html)).unwrap_or(false);
-    let has_ua = Regex::new(r#"gtag\(['"]config['"],\s*['"]UA-[0-9-]+['"]\)"#).ok().map(|r| r.is_match(html)).unwrap_or(false);
-    results.insert("Google Analytics GA4".into(), if has_ga4 { "Found" } else { "Not Found" }.into());
-    results.insert("Google Analytics UA".into(), if has_ua { "Found" } else { "Not Found" }.into());
+    let has_ga4 = Regex::new(r#"gtag\(['"]config['"],\s*['"]G-[A-Z0-9]+['"]\)"#)
+        .ok()
+        .map(|r| r.is_match(html))
+        .unwrap_or(false);
+    let has_ua = Regex::new(r#"gtag\(['"]config['"],\s*['"]UA-[0-9-]+['"]\)"#)
+        .ok()
+        .map(|r| r.is_match(html))
+        .unwrap_or(false);
+    results.insert(
+        "Google Analytics GA4".into(),
+        if has_ga4 { "Found" } else { "Not Found" }.into(),
+    );
+    results.insert(
+        "Google Analytics UA".into(),
+        if has_ua { "Found" } else { "Not Found" }.into(),
+    );
 
     // Other tracking tools
     let lower = html.to_lowercase();
     for &(name, patterns) in TRACKING_TOOLS {
         let found = patterns.iter().any(|p| lower.contains(&p.to_lowercase()));
-        results.insert(name.to_string(), if found { "Found" } else { "Not Found" }.into());
+        results.insert(
+            name.to_string(),
+            if found { "Found" } else { "Not Found" }.into(),
+        );
     }
 
     results
@@ -497,16 +657,38 @@ fn analyze_analytics(html: &str) -> HashMap<String, String> {
 
 // ── 6. Performance ──────────────────────────────────────────────────────────
 
-fn analyze_performance(headers: &reqwest::header::HeaderMap, load_time: f64, size: usize) -> PerformanceResult {
-    let status = if load_time < 1.0 { "Excellent" } else if load_time < 3.0 { "Good" } else { "Poor" };
+fn analyze_performance(
+    headers: &reqwest::header::HeaderMap,
+    load_time: f64,
+    size: usize,
+) -> PerformanceResult {
+    let status = if load_time < 1.0 {
+        "Excellent"
+    } else if load_time < 3.0 {
+        "Good"
+    } else {
+        "Poor"
+    };
 
     PerformanceResult {
         load_time_secs: (load_time * 100.0).round() / 100.0,
         load_time_status: status.into(),
         content_size_kb: (size as f64 / 1024.0 * 100.0).round() / 100.0,
-        compression: headers.get("content-encoding").and_then(|v| v.to_str().ok()).unwrap_or("None").into(),
-        server: headers.get("server").and_then(|v| v.to_str().ok()).unwrap_or("Unknown").into(),
-        cache_control: headers.get("cache-control").and_then(|v| v.to_str().ok()).unwrap_or("Not Set").into(),
+        compression: headers
+            .get("content-encoding")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("None")
+            .into(),
+        server: headers
+            .get("server")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("Unknown")
+            .into(),
+        cache_control: headers
+            .get("cache-control")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("Not Set")
+            .into(),
         etag: headers.contains_key("etag"),
     }
 }
@@ -521,7 +703,10 @@ fn analyze_mobile(doc: &Html) -> MobileAccessibilityResult {
     let img_sel = Selector::parse("img").unwrap();
     let images: Vec<_> = doc.select(&img_sel).collect();
     let total = images.len();
-    let with_alt = images.iter().filter(|i| i.value().attr("alt").is_some()).count();
+    let with_alt = images
+        .iter()
+        .filter(|i| i.value().attr("alt").is_some())
+        .count();
 
     let aria_sel = Selector::parse("[aria-label]").unwrap();
     let aria_count = doc.select(&aria_sel).count();
@@ -530,9 +715,14 @@ fn analyze_mobile(doc: &Html) -> MobileAccessibilityResult {
         viewport_present: has_viewport,
         mobile_friendly,
         alt_attributes: AltAttributeResult {
-            total_images: total, images_with_alt: with_alt,
+            total_images: total,
+            images_with_alt: with_alt,
             missing_alt: total - with_alt,
-            alt_coverage: if total > 0 { format!("{:.1}%", (with_alt as f64 / total as f64) * 100.0) } else { "0%".into() },
+            alt_coverage: if total > 0 {
+                format!("{:.1}%", (with_alt as f64 / total as f64) * 100.0)
+            } else {
+                "0%".into()
+            },
         },
         aria_labels: aria_count,
     }
@@ -568,20 +758,31 @@ fn analyze_schema(doc: &Html, html: &str) -> SchemaMarkupResult {
         }
     }
 
-    let microdata = Selector::parse("[itemtype]").ok()
-        .map(|s| doc.select(&s).count()).unwrap_or(0);
+    let microdata = Selector::parse("[itemtype]")
+        .ok()
+        .map(|s| doc.select(&s).count())
+        .unwrap_or(0);
 
     // Also check for inline JSON-LD in raw HTML (in case scraper misses it)
-    let additional = Regex::new(r#""@type"\s*:\s*"([^"]+)""#).ok()
-        .map(|r| r.captures_iter(html).filter_map(|c| c.get(1).map(|m| m.as_str().to_string())).collect::<Vec<_>>())
+    let additional = Regex::new(r#""@type"\s*:\s*"([^"]+)""#)
+        .ok()
+        .map(|r| {
+            r.captures_iter(html)
+                .filter_map(|c| c.get(1).map(|m| m.as_str().to_string()))
+                .collect::<Vec<_>>()
+        })
         .unwrap_or_default();
 
     for t in additional {
-        if !types.contains(&t) { types.push(t); }
+        if !types.contains(&t) {
+            types.push(t);
+        }
     }
 
     SchemaMarkupResult {
-        json_ld_count, json_ld_types: types, microdata_items: microdata,
+        json_ld_count,
+        json_ld_types: types,
+        microdata_items: microdata,
         total_structured_data: json_ld_count + microdata,
     }
 }
@@ -592,10 +793,14 @@ fn extract_types(val: &serde_json::Value, types: &mut Vec<String>) {
             if let Some(t) = map.get("@type").and_then(|v| v.as_str()) {
                 types.push(t.to_string());
             }
-            for (_, v) in map { extract_types(v, types); }
+            for (_, v) in map {
+                extract_types(v, types);
+            }
         }
         serde_json::Value::Array(arr) => {
-            for v in arr { extract_types(v, types); }
+            for v in arr {
+                extract_types(v, types);
+            }
         }
         _ => {}
     }
@@ -613,15 +818,28 @@ fn analyze_links(doc: &Html, base_domain: &str) -> LinkAnalysisResult {
     for el in doc.select(&link_sel) {
         total += 1;
         if let Some(href) = el.value().attr("href") {
-            if href.starts_with("http") && !href.contains(base_domain) { external += 1; }
-            else if !href.starts_with("mailto:") && !href.starts_with("tel:") && !href.starts_with('#') { internal += 1; }
+            if href.starts_with("http") && !href.contains(base_domain) {
+                external += 1;
+            } else if !href.starts_with("mailto:")
+                && !href.starts_with("tel:")
+                && !href.starts_with('#')
+            {
+                internal += 1;
+            }
         }
         if let Some(rel) = el.value().attr("rel") {
-            if rel.contains("nofollow") { nofollow += 1; }
+            if rel.contains("nofollow") {
+                nofollow += 1;
+            }
         }
     }
 
-    LinkAnalysisResult { total_links: total, internal_links: internal, external_links: external, nofollow_links: nofollow }
+    LinkAnalysisResult {
+        total_links: total,
+        internal_links: internal,
+        external_links: external,
+        nofollow_links: nofollow,
+    }
 }
 
 // ── 11. Image SEO ───────────────────────────────────────────────────────────
@@ -630,15 +848,32 @@ fn analyze_images(doc: &Html) -> ImageSeoResult {
     let img_sel = Selector::parse("img").unwrap();
     let images: Vec<_> = doc.select(&img_sel).collect();
     let total = images.len();
-    let lazy = images.iter().filter(|i| i.value().attr("loading") == Some("lazy")).count();
-    let alt = images.iter().filter(|i| i.value().attr("alt").is_some()).count();
-    let title = images.iter().filter(|i| i.value().attr("title").is_some()).count();
+    let lazy = images
+        .iter()
+        .filter(|i| i.value().attr("loading") == Some("lazy"))
+        .count();
+    let alt = images
+        .iter()
+        .filter(|i| i.value().attr("alt").is_some())
+        .count();
+    let title = images
+        .iter()
+        .filter(|i| i.value().attr("title").is_some())
+        .count();
 
     let opt_score = if total > 0 {
         format!("{:.1}%", ((lazy + alt) as f64 / (total * 2) as f64) * 100.0)
-    } else { "0%".into() };
+    } else {
+        "0%".into()
+    };
 
-    ImageSeoResult { total_images: total, lazy_loaded: lazy, with_alt_text: alt, with_title: title, optimization_score: opt_score }
+    ImageSeoResult {
+        total_images: total,
+        lazy_loaded: lazy,
+        with_alt_text: alt,
+        with_title: title,
+        optimization_score: opt_score,
+    }
 }
 
 // ── 12. Page Speed Factors ──────────────────────────────────────────────────
@@ -654,7 +889,11 @@ fn analyze_speed_factors(doc: &Html, headers: &reqwest::header::HeaderMap) -> Pa
         js_files: doc.select(&js_sel).count(),
         inline_styles: doc.select(&style_sel).count(),
         inline_scripts: doc.select(&inline_js_sel).count(),
-        compression: headers.get("content-encoding").and_then(|v| v.to_str().ok()).unwrap_or("None").into(),
+        compression: headers
+            .get("content-encoding")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("None")
+            .into(),
     }
 }
 
@@ -671,19 +910,37 @@ fn calculate_seo_score(
     let mut score: u32 = 0;
 
     // Basic SEO (30 pts)
-    if basic.title.status == "Good" { score += 10; }
-    if basic.meta_description.status == "Good" { score += 10; }
-    if basic.canonical_url != "Not Found" { score += 5; }
-    if basic.viewport != "Not Found" { score += 5; }
+    if basic.title.status == "Good" {
+        score += 10;
+    }
+    if basic.meta_description.status == "Good" {
+        score += 10;
+    }
+    if basic.canonical_url != "Not Found" {
+        score += 5;
+    }
+    if basic.viewport != "Not Found" {
+        score += 5;
+    }
 
     // Content (20 pts)
-    if content.word_count_status == "Good" { score += 10; }
-    if content.headings.contains_key("H1") { score += 10; }
+    if content.word_count_status == "Good" {
+        score += 10;
+    }
+    if content.headings.contains_key("H1") {
+        score += 10;
+    }
 
     // Technical (20 pts)
-    if resources.get("robots.txt").map(|s| s.as_str()) == Some("Found") { score += 5; }
-    if resources.get("sitemap.xml").map(|s| s.as_str()) == Some("Found") { score += 5; }
-    if schema.total_structured_data > 0 { score += 10; }
+    if resources.get("robots.txt").map(|s| s.as_str()) == Some("Found") {
+        score += 5;
+    }
+    if resources.get("sitemap.xml").map(|s| s.as_str()) == Some("Found") {
+        score += 5;
+    }
+    if schema.total_structured_data > 0 {
+        score += 10;
+    }
 
     // Performance (15 pts)
     match perf.load_time_status.as_str() {
@@ -695,16 +952,29 @@ fn calculate_seo_score(
     score += 5; // base
 
     // Mobile (5 pts)
-    if mobile.mobile_friendly { score += 5; }
+    if mobile.mobile_friendly {
+        score += 5;
+    }
 
     let max_score = 100u32;
     let pct = (score as f64 / max_score as f64) * 100.0;
-    let grade = if pct >= 90.0 { "A+" } else if pct >= 80.0 { "A" }
-        else if pct >= 70.0 { "B" } else if pct >= 60.0 { "C" }
-        else if pct >= 50.0 { "D" } else { "F" };
+    let grade = if pct >= 90.0 {
+        "A+"
+    } else if pct >= 80.0 {
+        "A"
+    } else if pct >= 70.0 {
+        "B"
+    } else if pct >= 60.0 {
+        "C"
+    } else if pct >= 50.0 {
+        "D"
+    } else {
+        "F"
+    };
 
     SeoScoreResult {
-        score, max_score,
+        score,
+        max_score,
         percentage: format!("{:.1}%", pct),
         grade: grade.into(),
     }
@@ -778,7 +1048,10 @@ impl qicro_data_core::registry::Registrable for AltAttributeResult {
 
 impl qicro_data_core::registry::Registrable for MobileAccessibilityResult {
     fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("MobileAccessibilityResult", "mobileaccessibilityresult")
+        qicro_data_core::registry::ModelMeta::new(
+            "MobileAccessibilityResult",
+            "mobileaccessibilityresult",
+        )
     }
 }
 

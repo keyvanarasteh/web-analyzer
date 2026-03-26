@@ -1,8 +1,8 @@
+use regex::Regex;
 use reqwest::{Client, Method};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
-use regex::Regex;
 
 // ── WAF signature database ──────────────────────────────────────────────────
 
@@ -13,13 +13,41 @@ struct WafSignature {
 }
 
 const WAF_SIGNATURES: &[WafSignature] = &[
-    WafSignature { name: "Cloudflare",        headers: &["cf-ray", "cf-cache-status", "__cfduid"], server: &["cloudflare"] },
-    WafSignature { name: "Akamai",            headers: &["akamai-transformed", "akamai-cache-status"], server: &["akamaighost"] },
-    WafSignature { name: "Imperva Incapsula",  headers: &["x-iinfo", "incap_ses"], server: &["imperva"] },
-    WafSignature { name: "Sucuri",            headers: &["x-sucuri-id", "x-sucuri-cache"], server: &["sucuri"] },
-    WafSignature { name: "Barracuda",         headers: &["barra"], server: &["barracuda"] },
-    WafSignature { name: "F5 BIG-IP",         headers: &["f5-http-lb", "bigip"], server: &["bigip", "f5"] },
-    WafSignature { name: "AWS WAF",           headers: &["x-amz-cf-id", "x-amzn-requestid"], server: &["awselb"] },
+    WafSignature {
+        name: "Cloudflare",
+        headers: &["cf-ray", "cf-cache-status", "__cfduid"],
+        server: &["cloudflare"],
+    },
+    WafSignature {
+        name: "Akamai",
+        headers: &["akamai-transformed", "akamai-cache-status"],
+        server: &["akamaighost"],
+    },
+    WafSignature {
+        name: "Imperva Incapsula",
+        headers: &["x-iinfo", "incap_ses"],
+        server: &["imperva"],
+    },
+    WafSignature {
+        name: "Sucuri",
+        headers: &["x-sucuri-id", "x-sucuri-cache"],
+        server: &["sucuri"],
+    },
+    WafSignature {
+        name: "Barracuda",
+        headers: &["barra"],
+        server: &["barracuda"],
+    },
+    WafSignature {
+        name: "F5 BIG-IP",
+        headers: &["f5-http-lb", "bigip"],
+        server: &["bigip", "f5"],
+    },
+    WafSignature {
+        name: "AWS WAF",
+        headers: &["x-amz-cf-id", "x-amzn-requestid"],
+        server: &["awselb"],
+    },
 ];
 
 /// Security headers with importance levels
@@ -161,10 +189,21 @@ pub struct SecurityScoreResult {
 
 // ── Main function ───────────────────────────────────────────────────────────
 
-pub async fn analyze_security(domain: &str) -> Result<SecurityAnalysisResult, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn analyze_security(
+    domain: &str,
+) -> Result<SecurityAnalysisResult, Box<dyn std::error::Error + Send + Sync>> {
     let clean = if domain.starts_with("http://") || domain.starts_with("https://") {
-        domain.split("//").nth(1).unwrap_or(domain).split('/').next().unwrap_or(domain).to_string()
-    } else { domain.to_string() };
+        domain
+            .split("//")
+            .nth(1)
+            .unwrap_or(domain)
+            .split('/')
+            .next()
+            .unwrap_or(domain)
+            .to_string()
+    } else {
+        domain.to_string()
+    };
 
     let client = Client::builder()
         .timeout(Duration::from_secs(30))
@@ -190,7 +229,9 @@ pub async fn analyze_security(domain: &str) -> Result<SecurityAnalysisResult, Bo
         if [301, 302, 307, 308].contains(&status) {
             if let Some(loc) = resp.headers().get("location") {
                 if let Ok(l) = loc.to_str() {
-                    if l.starts_with("https://") { https_redirect = true; }
+                    if l.starts_with("https://") {
+                        https_redirect = true;
+                    }
                 }
             }
         }
@@ -200,8 +241,11 @@ pub async fn analyze_security(domain: &str) -> Result<SecurityAnalysisResult, Bo
     let https_resp = client.get(&https_url).send().await;
     let https_available = https_resp.is_ok();
 
-    let primary = if let Ok(r) = https_resp { r }
-        else { client.get(&http_url).send().await? };
+    let primary = if let Ok(r) = https_resp {
+        r
+    } else {
+        client.get(&http_url).send().await?
+    };
 
     let resp_url = primary.url().to_string();
     let headers = primary.headers().clone();
@@ -233,10 +277,17 @@ pub async fn analyze_security(domain: &str) -> Result<SecurityAnalysisResult, Bo
 
     // ── 9. Score & Recommendations ──────────────────────────────────────
     let security_score = calculate_score(
-        &security_headers, &ssl_analysis, &waf_detection, &vulnerability_scan,
+        &security_headers,
+        &ssl_analysis,
+        &waf_detection,
+        &vulnerability_scan,
     );
     let recommendations = generate_recommendations(
-        &security_headers, &ssl_analysis, &waf_detection, https_available, https_redirect,
+        &security_headers,
+        &ssl_analysis,
+        &waf_detection,
+        https_available,
+        https_redirect,
     );
 
     Ok(SecurityAnalysisResult {
@@ -260,7 +311,8 @@ pub async fn analyze_security(domain: &str) -> Result<SecurityAnalysisResult, Bo
 
 fn detect_waf(headers: &reqwest::header::HeaderMap) -> WafDetectionResult {
     let headers_str = format!("{:?}", headers).to_lowercase();
-    let server_header = headers.get("server")
+    let server_header = headers
+        .get("server")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("")
         .to_lowercase();
@@ -285,9 +337,13 @@ fn detect_waf(headers: &reqwest::header::HeaderMap) -> WafDetectionResult {
         }
 
         if confidence > 0 {
-            let conf_str = if confidence >= 50 { "High" }
-                else if confidence >= 30 { "Medium" }
-                else { "Low" };
+            let conf_str = if confidence >= 50 {
+                "High"
+            } else if confidence >= 30 {
+                "Medium"
+            } else {
+                "Low"
+            };
             detected.push(WafMatch {
                 provider: sig.name.to_string(),
                 confidence: conf_str.into(),
@@ -317,14 +373,19 @@ fn analyze_security_headers(headers: &reqwest::header::HeaderMap) -> SecurityHea
 
     for &(name, importance) in SECURITY_HEADERS {
         let present = headers.get(name).is_some();
-        let value = headers.get(name)
+        let value = headers
+            .get(name)
             .and_then(|v| v.to_str().ok())
             .unwrap_or("Not Set")
             .to_string();
 
-        let security_level = if present { "Good".into() }
-            else if importance == "Critical" { "Critical".into() }
-            else { "Medium".into() };
+        let security_level = if present {
+            "Good".into()
+        } else if importance == "Critical" {
+            "Critical".into()
+        } else {
+            "Medium".into()
+        };
 
         let weight = match importance {
             "Critical" => 30,
@@ -332,25 +393,50 @@ fn analyze_security_headers(headers: &reqwest::header::HeaderMap) -> SecurityHea
             _ => 10,
         };
         max_score += weight;
-        if present { total_score += weight; }
-        else if importance == "Critical" { missing_critical.push(name.to_string()); }
-        else if importance == "High" { missing_high.push(name.to_string()); }
+        if present {
+            total_score += weight;
+        } else if importance == "Critical" {
+            missing_critical.push(name.to_string());
+        } else if importance == "High" {
+            missing_high.push(name.to_string());
+        }
 
-        analysis.insert(name.to_string(), HeaderAnalysis {
-            present, value, importance: importance.into(), security_level,
-        });
+        analysis.insert(
+            name.to_string(),
+            HeaderAnalysis {
+                present,
+                value,
+                importance: importance.into(),
+                security_level,
+            },
+        );
     }
 
-    let score = if max_score > 0 { (total_score * 100 / max_score) } else { 0 };
+    let score = if max_score > 0 {
+        (total_score * 100 / max_score)
+    } else {
+        0
+    };
 
-    SecurityHeadersResult { headers: analysis, score, missing_critical, missing_high }
+    SecurityHeadersResult {
+        headers: analysis,
+        score,
+        missing_critical,
+        missing_high,
+    }
 }
 
 // ── SSL/TLS Analysis ────────────────────────────────────────────────────────
 
 async fn analyze_ssl(domain: &str) -> SslAnalysisResult {
     let output = match tokio::process::Command::new("openssl")
-        .args(["s_client", "-connect", &format!("{}:443", domain), "-servername", domain])
+        .args([
+            "s_client",
+            "-connect",
+            &format!("{}:443", domain),
+            "-servername",
+            domain,
+        ])
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -358,40 +444,56 @@ async fn analyze_ssl(domain: &str) -> SslAnalysisResult {
         .await
     {
         Ok(o) => String::from_utf8_lossy(&o.stdout).to_string(),
-        Err(_) => return SslAnalysisResult {
-            ssl_available: false, protocol_version: None, cipher_suite: None,
-            cipher_strength: "Unknown".into(), overall_grade: "F".into(),
-            subject: None, issuer: None,
-        },
+        Err(_) => {
+            return SslAnalysisResult {
+                ssl_available: false,
+                protocol_version: None,
+                cipher_suite: None,
+                cipher_strength: "Unknown".into(),
+                overall_grade: "F".into(),
+                subject: None,
+                issuer: None,
+            }
+        }
     };
 
     if !output.contains("CONNECTED") {
         return SslAnalysisResult {
-            ssl_available: false, protocol_version: None, cipher_suite: None,
-            cipher_strength: "Unknown".into(), overall_grade: "F".into(),
-            subject: None, issuer: None,
+            ssl_available: false,
+            protocol_version: None,
+            cipher_suite: None,
+            cipher_strength: "Unknown".into(),
+            overall_grade: "F".into(),
+            subject: None,
+            issuer: None,
         };
     }
 
     let protocol = Regex::new(r"Protocol\s*:\s*(.+)")
-        .ok().and_then(|r| r.captures(&output))
+        .ok()
+        .and_then(|r| r.captures(&output))
         .and_then(|c| c.get(1).map(|m| m.as_str().trim().to_string()));
 
     let cipher_suite = Regex::new(r"Cipher\s*:\s*(.+)")
-        .ok().and_then(|r| r.captures(&output))
+        .ok()
+        .and_then(|r| r.captures(&output))
         .and_then(|c| c.get(1).map(|m| m.as_str().trim().to_string()));
 
     let subject = Regex::new(r"subject=.*?CN\s*=\s*([^\n/,]+)")
-        .ok().and_then(|r| r.captures(&output))
+        .ok()
+        .and_then(|r| r.captures(&output))
         .and_then(|c| c.get(1).map(|m| m.as_str().trim().to_string()));
 
     let issuer = Regex::new(r"issuer=.*?CN\s*=\s*([^\n/,]+)")
-        .ok().and_then(|r| r.captures(&output))
+        .ok()
+        .and_then(|r| r.captures(&output))
         .and_then(|c| c.get(1).map(|m| m.as_str().trim().to_string()));
 
     // Cipher strength
     let cipher_strength = match &cipher_suite {
-        Some(c) if c.contains("AES256") || c.contains("CHACHA20") || c.contains("TLS_AES_256") => "Strong",
+        Some(c) if c.contains("AES256") || c.contains("CHACHA20") || c.contains("TLS_AES_256") => {
+            "Strong"
+        }
         Some(c) if c.contains("AES128") => "Medium",
         Some(c) if c.contains("DES") || c.contains("RC4") || c.contains("NULL") => "Weak",
         _ => "Unknown",
@@ -399,11 +501,17 @@ async fn analyze_ssl(domain: &str) -> SslAnalysisResult {
 
     // Grade
     let proto_str = protocol.as_deref().unwrap_or("");
-    let grade = if proto_str.contains("TLSv1.3") { "A+" }
-        else if proto_str.contains("TLSv1.2") && cipher_strength == "Strong" { "A" }
-        else if proto_str.contains("TLSv1.2") { "B" }
-        else if proto_str.contains("TLSv1.1") || proto_str.contains("TLSv1") { "C" }
-        else { "F" };
+    let grade = if proto_str.contains("TLSv1.3") {
+        "A+"
+    } else if proto_str.contains("TLSv1.2") && cipher_strength == "Strong" {
+        "A"
+    } else if proto_str.contains("TLSv1.2") {
+        "B"
+    } else if proto_str.contains("TLSv1.1") || proto_str.contains("TLSv1") {
+        "C"
+    } else {
+        "F"
+    };
 
     SslAnalysisResult {
         ssl_available: true,
@@ -411,7 +519,8 @@ async fn analyze_ssl(domain: &str) -> SslAnalysisResult {
         cipher_suite,
         cipher_strength: cipher_strength.into(),
         overall_grade: grade.into(),
-        subject, issuer,
+        subject,
+        issuer,
     }
 }
 
@@ -430,16 +539,25 @@ fn analyze_cors(headers: &reqwest::header::HeaderMap) -> CorsPolicyResult {
     let mut issues = Vec::new();
 
     for &key in &cors_keys {
-        let val = headers.get(key)
+        let val = headers
+            .get(key)
             .and_then(|v| v.to_str().ok())
             .unwrap_or("Not Set")
             .to_string();
-        if val != "Not Set" { configured = true; }
+        if val != "Not Set" {
+            configured = true;
+        }
         cors_headers.insert(key.to_string(), val);
     }
 
-    let origin = cors_headers.get("access-control-allow-origin").map(|s| s.as_str()).unwrap_or("Not Set");
-    let creds = cors_headers.get("access-control-allow-credentials").map(|s| s.as_str()).unwrap_or("Not Set");
+    let origin = cors_headers
+        .get("access-control-allow-origin")
+        .map(|s| s.as_str())
+        .unwrap_or("Not Set");
+    let creds = cors_headers
+        .get("access-control-allow-credentials")
+        .map(|s| s.as_str())
+        .unwrap_or("Not Set");
 
     if origin == "*" && creds == "true" {
         issues.push("Critical: Wildcard origin with credentials allowed".into());
@@ -447,11 +565,20 @@ fn analyze_cors(headers: &reqwest::header::HeaderMap) -> CorsPolicyResult {
         issues.push("Warning: Wildcard origin allows all domains".into());
     }
 
-    let security_level = if issues.is_empty() { "High" }
-        else if issues.len() <= 1 { "Medium" }
-        else { "Low" };
+    let security_level = if issues.is_empty() {
+        "High"
+    } else if issues.len() <= 1 {
+        "Medium"
+    } else {
+        "Low"
+    };
 
-    CorsPolicyResult { configured, headers: cors_headers, issues, security_level: security_level.into() }
+    CorsPolicyResult {
+        configured,
+        headers: cors_headers,
+        issues,
+        security_level: security_level.into(),
+    }
 }
 
 // ── Cookie Security ─────────────────────────────────────────────────────────
@@ -459,17 +586,33 @@ fn analyze_cors(headers: &reqwest::header::HeaderMap) -> CorsPolicyResult {
 fn analyze_cookies(headers: &reqwest::header::HeaderMap) -> CookieSecurityResult {
     let cookie_val = match headers.get("set-cookie").and_then(|v| v.to_str().ok()) {
         Some(c) => c.to_string(),
-        None => return CookieSecurityResult { cookies_present: false, security_issues: vec![], security_score: 100 },
+        None => {
+            return CookieSecurityResult {
+                cookies_present: false,
+                security_issues: vec![],
+                security_score: 100,
+            }
+        }
     };
 
     let mut issues = Vec::new();
-    if !cookie_val.contains("Secure") { issues.push("Missing Secure flag".into()); }
-    if !cookie_val.contains("HttpOnly") { issues.push("Missing HttpOnly flag".into()); }
-    if !cookie_val.contains("SameSite") { issues.push("Missing SameSite attribute".into()); }
+    if !cookie_val.contains("Secure") {
+        issues.push("Missing Secure flag".into());
+    }
+    if !cookie_val.contains("HttpOnly") {
+        issues.push("Missing HttpOnly flag".into());
+    }
+    if !cookie_val.contains("SameSite") {
+        issues.push("Missing SameSite attribute".into());
+    }
 
     let score = 100u32.saturating_sub(issues.len() as u32 * 25);
 
-    CookieSecurityResult { cookies_present: true, security_issues: issues, security_score: score }
+    CookieSecurityResult {
+        cookies_present: true,
+        security_issues: issues,
+        security_score: score,
+    }
 }
 
 // ── HTTP Methods ────────────────────────────────────────────────────────────
@@ -479,20 +622,28 @@ async fn detect_methods(client: &Client, url: &str) -> HttpMethodsResult {
 
     match client.request(Method::OPTIONS, url).send().await {
         Ok(resp) => {
-            let allow = resp.headers().get("allow")
+            let allow = resp
+                .headers()
+                .get("allow")
                 .and_then(|v| v.to_str().ok())
                 .unwrap_or("");
-            let methods: Vec<String> = allow.split(',')
+            let methods: Vec<String> = allow
+                .split(',')
                 .map(|m| m.trim().to_string())
                 .filter(|m| !m.is_empty())
                 .collect();
 
-            let found_dangerous: Vec<String> = methods.iter()
+            let found_dangerous: Vec<String> = methods
+                .iter()
                 .filter(|m| dangerous.contains(&m.to_uppercase().as_str()))
                 .cloned()
                 .collect();
 
-            let risk = if !found_dangerous.is_empty() { "High" } else { "Low" };
+            let risk = if !found_dangerous.is_empty() {
+                "High"
+            } else {
+                "Low"
+            };
 
             HttpMethodsResult {
                 methods_detected: true,
@@ -529,11 +680,19 @@ fn analyze_server_info(headers: &reqwest::header::HeaderMap) -> ServerInfoResult
     }
 
     let count = issues.len();
-    let level = if count > 2 { "High" } else if count > 0 { "Medium" } else { "Good" };
+    let level = if count > 2 {
+        "High"
+    } else if count > 0 {
+        "Medium"
+    } else {
+        "Good"
+    };
 
     ServerInfoResult {
-        server_headers, information_disclosure: issues,
-        disclosure_count: count, security_level: level.into(),
+        server_headers,
+        information_disclosure: issues,
+        disclosure_count: count,
+        security_level: level.into(),
     }
 }
 
@@ -574,15 +733,27 @@ fn perform_vuln_scan(resp_url: &str, body: &str) -> VulnScanResult {
 }
 
 fn calculate_risk_level(vulns: &[VulnerabilityFound]) -> String {
-    if vulns.is_empty() { return "Low".into(); }
-    let total: u32 = vulns.iter().map(|v| match v.severity.as_str() {
-        "High" => 3, "Medium" => 2, _ => 1,
-    }).sum();
+    if vulns.is_empty() {
+        return "Low".into();
+    }
+    let total: u32 = vulns
+        .iter()
+        .map(|v| match v.severity.as_str() {
+            "High" => 3,
+            "Medium" => 2,
+            _ => 1,
+        })
+        .sum();
 
-    if total >= 6 { "Critical".into() }
-    else if total >= 4 { "High".into() }
-    else if total >= 2 { "Medium".into() }
-    else { "Low".into() }
+    if total >= 6 {
+        "Critical".into()
+    } else if total >= 4 {
+        "High".into()
+    } else if total >= 2 {
+        "Medium".into()
+    } else {
+        "Low".into()
+    }
 }
 
 // ── Security Score (weighted composite) ─────────────────────────────────────
@@ -603,7 +774,12 @@ fn calculate_score(
 
     // SSL (30%)
     let ssl_score: u32 = match ssl.overall_grade.as_str() {
-        "A+" => 100, "A" => 90, "B" => 75, "C" => 60, "D" => 40, _ => 0,
+        "A+" => 100,
+        "A" => 90,
+        "B" => 75,
+        "C" => 60,
+        "D" => 40,
+        _ => 0,
     };
     breakdown.insert("ssl_tls".into(), ssl_score);
     total -= (100.0 - ssl_score as f64) * 0.3;
@@ -620,17 +796,29 @@ fn calculate_score(
 
     let final_score = total.clamp(0.0, 100.0) as u32;
 
-    let grade = if final_score >= 95 { "A+" }
-        else if final_score >= 90 { "A" }
-        else if final_score >= 80 { "B" }
-        else if final_score >= 70 { "C" }
-        else if final_score >= 60 { "D" }
-        else { "F" };
+    let grade = if final_score >= 95 {
+        "A+"
+    } else if final_score >= 90 {
+        "A"
+    } else if final_score >= 80 {
+        "B"
+    } else if final_score >= 70 {
+        "C"
+    } else if final_score >= 60 {
+        "D"
+    } else {
+        "F"
+    };
 
-    let risk = if final_score >= 85 { "Low Risk" }
-        else if final_score >= 70 { "Medium Risk" }
-        else if final_score >= 50 { "High Risk" }
-        else { "Critical Risk" };
+    let risk = if final_score >= 85 {
+        "Low Risk"
+    } else if final_score >= 70 {
+        "Medium Risk"
+    } else if final_score >= 50 {
+        "High Risk"
+    } else {
+        "Critical Risk"
+    };
 
     SecurityScoreResult {
         overall_score: final_score,
@@ -652,10 +840,16 @@ fn generate_recommendations(
     let mut recs = Vec::new();
 
     if !headers.missing_critical.is_empty() {
-        recs.push(format!("CRITICAL: Implement missing security headers: {}", headers.missing_critical.join(", ")));
+        recs.push(format!(
+            "CRITICAL: Implement missing security headers: {}",
+            headers.missing_critical.join(", ")
+        ));
     }
     if !headers.missing_high.is_empty() {
-        recs.push(format!("HIGH: Add security headers: {}", headers.missing_high.join(", ")));
+        recs.push(format!(
+            "HIGH: Add security headers: {}",
+            headers.missing_high.join(", ")
+        ));
     }
 
     match ssl.overall_grade.as_str() {
@@ -680,7 +874,10 @@ fn generate_recommendations(
 
 impl qicro_data_core::registry::Registrable for SecurityAnalysisResult {
     fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SecurityAnalysisResult", "securityanalysisresult")
+        qicro_data_core::registry::ModelMeta::new(
+            "SecurityAnalysisResult",
+            "securityanalysisresult",
+        )
     }
 }
 

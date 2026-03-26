@@ -57,7 +57,9 @@ const NVD_API: &str = "https://services.nvd.nist.gov/rest/json/cves/2.0";
 
 // ── Main scan function ──────────────────────────────────────────────────────
 
-pub async fn run_nmap_scan(domain: &str) -> Result<NmapScanResult, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn run_nmap_scan(
+    domain: &str,
+) -> Result<NmapScanResult, Box<dyn std::error::Error + Send + Sync>> {
     let start = Instant::now();
 
     // ── DNS Resolution ──────────────────────────────────────────────────
@@ -78,7 +80,17 @@ pub async fn run_nmap_scan(domain: &str) -> Result<NmapScanResult, Box<dyn std::
 
     // ── Nmap Port Scan ──────────────────────────────────────────────────
     let output = Command::new("nmap")
-        .args(["-sV", "-Pn", "-A", "-T5", "--top-ports", "1000", "-oG", "-", &ip])
+        .args([
+            "-sV",
+            "-Pn",
+            "-A",
+            "-T5",
+            "--top-ports",
+            "1000",
+            "-oG",
+            "-",
+            &ip,
+        ])
         .output()
         .await?;
 
@@ -87,7 +99,9 @@ pub async fn run_nmap_scan(domain: &str) -> Result<NmapScanResult, Box<dyn std::
 
     // Parse grepable output: Host: x.x.x.x () Ports: 22/open/tcp//ssh//OpenSSH 8.9/, ...
     for line in stdout.lines() {
-        if !line.contains("Ports:") { continue; }
+        if !line.contains("Ports:") {
+            continue;
+        }
         if let Some(ports_section) = line.split("Ports: ").nth(1) {
             for port_entry in ports_section.split(',') {
                 let parts: Vec<&str> = port_entry.trim().split('/').collect();
@@ -96,19 +110,27 @@ pub async fn run_nmap_scan(domain: &str) -> Result<NmapScanResult, Box<dyn std::
                     let service = parts[4].trim().to_string();
                     let product = if parts.len() > 6 && !parts[6].trim().is_empty() {
                         Some(parts[6].trim().to_string())
-                    } else { None };
+                    } else {
+                        None
+                    };
                     let version = if parts.len() > 6 {
                         let p = parts[6].trim();
                         let v = if parts.len() > 7 { parts[7].trim() } else { "" };
                         format!("{} {}", p, v).trim().to_string()
-                    } else { String::new() };
+                    } else {
+                        String::new()
+                    };
 
                     // Extract CPE from nmap XML output (if available in grepable)
                     let cpe = Vec::new(); // CPE extraction requires XML output mode
 
                     open_ports.push(PortInfo {
-                        port, state: "open".into(), service,
-                        version, product, cpe,
+                        port,
+                        state: "open".into(),
+                        service,
+                        version,
+                        product,
+                        cpe,
                     });
                 }
             }
@@ -146,9 +168,14 @@ async fn fetch_vulnerabilities(ports: &[PortInfo]) -> Vec<VulnerabilityInfo> {
             port.service.as_str(),
             port.product.as_deref().unwrap_or(""),
             port.version.as_str(),
-        ].into_iter().filter(|s| !s.is_empty()).collect();
+        ]
+        .into_iter()
+        .filter(|s| !s.is_empty())
+        .collect();
 
-        if keywords.is_empty() { continue; }
+        if keywords.is_empty() {
+            continue;
+        }
         let keyword = keywords.join(" ");
 
         // ── NVD CVE Query ───────────────────────────────────────────
@@ -180,9 +207,17 @@ async fn query_nvd(client: &Client, keyword: &str) -> Vec<VulnerabilityInfo> {
 
     if let Some(vulns) = body.get("vulnerabilities").and_then(|v| v.as_array()) {
         for item in vulns {
-            let cve = match item.get("cve") { Some(c) => c, None => continue };
-            let id = cve.get("id").and_then(|v| v.as_str()).unwrap_or("N/A").to_string();
-            let description = cve.get("descriptions")
+            let cve = match item.get("cve") {
+                Some(c) => c,
+                None => continue,
+            };
+            let id = cve
+                .get("id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("N/A")
+                .to_string();
+            let description = cve
+                .get("descriptions")
                 .and_then(|d| d.as_array())
                 .and_then(|arr| arr.first())
                 .and_then(|d| d.get("value"))
@@ -195,7 +230,9 @@ async fn query_nvd(client: &Client, keyword: &str) -> Vec<VulnerabilityInfo> {
             results.push(VulnerabilityInfo {
                 source: "NVD".into(),
                 vuln_type: "CVE".into(),
-                id, description, severity,
+                id,
+                description,
+                severity,
             });
         }
     }
@@ -208,7 +245,8 @@ async fn query_exploit_db(client: &Client, keyword: &str) -> Vec<VulnerabilityIn
 
     let encoded = urlencoding::encode(keyword);
     let url = format!("https://www.exploit-db.com/search?q={}", encoded);
-    if let Ok(resp) = client.get(&url)
+    if let Ok(resp) = client
+        .get(&url)
         .header("User-Agent", "Mozilla/5.0")
         .send()
         .await
@@ -219,7 +257,10 @@ async fn query_exploit_db(client: &Client, keyword: &str) -> Vec<VulnerabilityIn
                 vuln_type: "Exploit".into(),
                 id: "N/A".into(),
                 description: format!("Potential exploit for {}", keyword),
-                severity: SeverityInfo { level: "Unknown".into(), score: 0.0 },
+                severity: SeverityInfo {
+                    level: "Unknown".into(),
+                    score: 0.0,
+                },
             });
         }
     }
@@ -230,7 +271,8 @@ async fn query_exploit_db(client: &Client, keyword: &str) -> Vec<VulnerabilityIn
 // ── Severity Calculation (CVSS v3.1) ────────────────────────────────────────
 
 fn calculate_severity(cve: &Value) -> SeverityInfo {
-    let base_score = cve.get("metrics")
+    let base_score = cve
+        .get("metrics")
         .and_then(|m| m.get("cvssMetricV31"))
         .and_then(|v| v.as_array())
         .and_then(|arr| arr.first())
@@ -239,13 +281,22 @@ fn calculate_severity(cve: &Value) -> SeverityInfo {
         .and_then(|s| s.as_f64())
         .unwrap_or(0.0);
 
-    let level = if base_score >= 9.0 { "Critical" }
-        else if base_score >= 7.0 { "High" }
-        else if base_score >= 4.0 { "Medium" }
-        else if base_score > 0.0 { "Low" }
-        else { "Unknown" };
+    let level = if base_score >= 9.0 {
+        "Critical"
+    } else if base_score >= 7.0 {
+        "High"
+    } else if base_score >= 4.0 {
+        "Medium"
+    } else if base_score > 0.0 {
+        "Low"
+    } else {
+        "Unknown"
+    };
 
-    SeverityInfo { level: level.into(), score: base_score }
+    SeverityInfo {
+        level: level.into(),
+        score: base_score,
+    }
 }
 
 impl qicro_data_core::registry::Registrable for PortInfo {

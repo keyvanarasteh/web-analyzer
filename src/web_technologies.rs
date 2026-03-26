@@ -1,18 +1,23 @@
+use regex::Regex;
 use reqwest::Client;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
-use regex::Regex;
 use std::collections::HashMap;
 use std::time::Duration;
 
 // ── Detection pattern constants ─────────────────────────────────────────────
 
 const WEB_SERVERS: &[(&str, &str)] = &[
-    ("nginx", "Nginx"), ("apache", "Apache HTTP Server"),
-    ("iis", "Microsoft IIS"), ("cloudflare", "Cloudflare"),
-    ("litespeed", "LiteSpeed"), ("caddy", "Caddy"),
-    ("traefik", "Traefik Proxy"), ("envoy", "Envoy Proxy"),
-    ("gunicorn", "Gunicorn WSGI"), ("uwsgi", "uWSGI"),
+    ("nginx", "Nginx"),
+    ("apache", "Apache HTTP Server"),
+    ("iis", "Microsoft IIS"),
+    ("cloudflare", "Cloudflare"),
+    ("litespeed", "LiteSpeed"),
+    ("caddy", "Caddy"),
+    ("traefik", "Traefik Proxy"),
+    ("envoy", "Envoy Proxy"),
+    ("gunicorn", "Gunicorn WSGI"),
+    ("uwsgi", "uWSGI"),
 ];
 
 const JS_LIBRARIES: &[(&str, &[&str])] = &[
@@ -42,7 +47,10 @@ const CSS_FRAMEWORKS: &[(&str, &[&str])] = &[
 ];
 
 const CMS_PATTERNS: &[(&str, &[&str])] = &[
-    ("WordPress", &["wp-content", "wp-includes", "wp-admin", "wordpress"]),
+    (
+        "WordPress",
+        &["wp-content", "wp-includes", "wp-admin", "wordpress"],
+    ),
     ("Drupal", &["drupal", "sites/all", "sites/default"]),
     ("Joomla", &["joomla", "option=com_"]),
     ("Magento", &["magento", "mage/cookies.js", "skin/frontend"]),
@@ -68,7 +76,10 @@ const ECOMMERCE: &[(&str, &[&str])] = &[
 ];
 
 const ANALYTICS: &[(&str, &[&str])] = &[
-    ("Google Analytics", &["google-analytics", "googletagmanager", "gtag"]),
+    (
+        "Google Analytics",
+        &["google-analytics", "googletagmanager", "gtag"],
+    ),
     ("Google Tag Manager", &["googletagmanager"]),
     ("Facebook Pixel", &["facebook.net/tr", "fbevents.js"]),
     ("Hotjar", &["hotjar"]),
@@ -99,11 +110,16 @@ const SECURITY_HEADERS: &[(&str, &str)] = &[
 ];
 
 const WP_KNOWN_PLUGINS: &[(&str, &str)] = &[
-    ("yoast", "Yoast SEO"), ("akismet", "Akismet Anti-Spam"),
-    ("jetpack", "Jetpack"), ("woocommerce", "WooCommerce"),
-    ("contact-form-7", "Contact Form 7"), ("elementor", "Elementor"),
-    ("wordfence", "Wordfence Security"), ("wp-super-cache", "WP Super Cache"),
-    ("all-in-one-seo", "All in One SEO"), ("google-analytics", "Google Analytics"),
+    ("yoast", "Yoast SEO"),
+    ("akismet", "Akismet Anti-Spam"),
+    ("jetpack", "Jetpack"),
+    ("woocommerce", "WooCommerce"),
+    ("contact-form-7", "Contact Form 7"),
+    ("elementor", "Elementor"),
+    ("wordfence", "Wordfence Security"),
+    ("wp-super-cache", "WP Super Cache"),
+    ("all-in-one-seo", "All in One SEO"),
+    ("google-analytics", "Google Analytics"),
 ];
 
 // ── Data Structures ─────────────────────────────────────────────────────────
@@ -203,9 +219,14 @@ pub struct SecurityScoreResult {
 
 // ── Main Function ───────────────────────────────────────────────────────────
 
-pub async fn detect_web_technologies(domain: &str) -> Result<WebTechResult, Box<dyn std::error::Error + Send + Sync>> {
-    let url = if domain.starts_with("http") { domain.to_string() }
-        else { format!("https://{}", domain) };
+pub async fn detect_web_technologies(
+    domain: &str,
+) -> Result<WebTechResult, Box<dyn std::error::Error + Send + Sync>> {
+    let url = if domain.starts_with("http") {
+        domain.to_string()
+    } else {
+        format!("https://{}", domain)
+    };
 
     let client = Client::builder()
         .timeout(Duration::from_secs(30))
@@ -226,10 +247,26 @@ pub async fn detect_web_technologies(domain: &str) -> Result<WebTechResult, Box<
     let headers_str = format!("{:?}", headers).to_lowercase();
 
     // ── All Html-dependent (sync) work in a block so it drops before .await ──
-    let (web_server, backend, frontend, js_libraries, css_frameworks,
-         cms, ecommerce, cdn, analytics, security_headers,
-         security_vulnerabilities, information_disclosure, security_services,
-         cookie_security, is_wordpress, wp_version, wp_theme, wp_plugins) = {
+    let (
+        web_server,
+        backend,
+        frontend,
+        js_libraries,
+        css_frameworks,
+        cms,
+        ecommerce,
+        cdn,
+        analytics,
+        security_headers,
+        security_vulnerabilities,
+        information_disclosure,
+        security_services,
+        cookie_security,
+        is_wordpress,
+        wp_version,
+        wp_theme,
+        wp_plugins,
+    ) = {
         let document = Html::parse_document(&html_raw);
 
         let web_server = detect_server(&server_hdr, &powered_by);
@@ -249,35 +286,90 @@ pub async fn detect_web_technologies(domain: &str) -> Result<WebTechResult, Box<
         let is_wordpress = is_wp(&html_lower);
 
         // Extract WP data synchronously while we have Html
-        let wp_version = if is_wordpress { extract_wp_version(&html_lower, &document) } else { String::new() };
-        let wp_theme = if is_wordpress { extract_wp_theme(&document) } else { String::new() };
-        let wp_plugins = if is_wordpress { extract_wp_plugins(&html_lower, &document) } else { vec![] };
+        let wp_version = if is_wordpress {
+            extract_wp_version(&html_lower, &document)
+        } else {
+            String::new()
+        };
+        let wp_theme = if is_wordpress {
+            extract_wp_theme(&document)
+        } else {
+            String::new()
+        };
+        let wp_plugins = if is_wordpress {
+            extract_wp_plugins(&html_lower, &document)
+        } else {
+            vec![]
+        };
 
-        (web_server, backend, frontend, js_libraries, css_frameworks,
-         cms, ecommerce, cdn, analytics, security_headers,
-         security_vulnerabilities, information_disclosure, security_services,
-         cookie_security, is_wordpress, wp_version, wp_theme, wp_plugins)
+        (
+            web_server,
+            backend,
+            frontend,
+            js_libraries,
+            css_frameworks,
+            cms,
+            ecommerce,
+            cdn,
+            analytics,
+            security_headers,
+            security_vulnerabilities,
+            information_disclosure,
+            security_services,
+            cookie_security,
+            is_wordpress,
+            wp_version,
+            wp_theme,
+            wp_plugins,
+        )
     }; // `document` (Html) is dropped here — safe for async after this point
 
     // 15. WordPress Analysis (async — no Html involved)
     let wordpress_analysis = if is_wordpress {
-        Some(analyze_wordpress(&client, &base_domain, &html_lower, wp_version, wp_theme, wp_plugins).await)
-    } else { None };
+        Some(
+            analyze_wordpress(
+                &client,
+                &base_domain,
+                &html_lower,
+                wp_version,
+                wp_theme,
+                wp_plugins,
+            )
+            .await,
+        )
+    } else {
+        None
+    };
 
     // 16. Security Score
     let security_score = calculate_score(
-        &security_headers, &security_vulnerabilities,
-        &information_disclosure, &security_services, &cookie_security,
+        &security_headers,
+        &security_vulnerabilities,
+        &information_disclosure,
+        &security_services,
+        &cookie_security,
         &wordpress_analysis,
     );
 
     Ok(WebTechResult {
         domain: domain.to_string(),
-        web_server, backend, frontend, js_libraries, css_frameworks,
-        cms, ecommerce, cdn, analytics, security_headers,
-        security_vulnerabilities, information_disclosure,
-        security_services, cookie_security,
-        is_wordpress, wordpress_analysis, security_score,
+        web_server,
+        backend,
+        frontend,
+        js_libraries,
+        css_frameworks,
+        cms,
+        ecommerce,
+        cdn,
+        analytics,
+        security_headers,
+        security_vulnerabilities,
+        information_disclosure,
+        security_services,
+        cookie_security,
+        is_wordpress,
+        wordpress_analysis,
+        security_score,
     })
 }
 
@@ -288,13 +380,18 @@ fn detect_server(server: &str, powered_by: &str) -> String {
     let p_lower = powered_by.to_lowercase();
     for &(key, name) in WEB_SERVERS {
         if s_lower.contains(key) || p_lower.contains(key) {
-            let version = Regex::new(r"[\d\.]+").ok()
+            let version = Regex::new(r"[\d\.]+")
+                .ok()
                 .and_then(|r| r.find(&s_lower).map(|m| format!(" {}", m.as_str())))
                 .unwrap_or_default();
             return format!("{}{}", name, version);
         }
     }
-    if server.is_empty() { "Not Detected".into() } else { server.to_string() }
+    if server.is_empty() {
+        "Not Detected".into()
+    } else {
+        server.to_string()
+    }
 }
 
 // ── 2. Backend Technologies ─────────────────────────────────────────────────
@@ -303,16 +400,41 @@ fn detect_backend(html: &str, powered_by: &str, server: &str) -> Vec<String> {
     let mut techs = vec![];
     let srv = server.to_lowercase();
 
-    if powered_by.contains("php") || html.contains(".php") || html.contains("phpsessid") { techs.push("PHP".into()); }
-    if powered_by.contains("asp.net") || html.contains("__viewstate") || html.contains("aspxauth") { techs.push("ASP.NET".into()); }
-    if powered_by.contains("express") || srv.contains("node") || powered_by.contains("koa") { techs.push("Node.js".into()); }
-    if html.contains("django") || html.contains("csrfmiddlewaretoken") { techs.push("Python Django".into()); }
-    if html.contains("flask") || srv.contains("werkzeug") { techs.push("Python Flask".into()); }
-    if powered_by.contains("ruby") || html.contains("rails") || html.contains("authenticity_token") { techs.push("Ruby on Rails".into()); }
-    if html.contains("jsessionid") || html.contains("servlet") || html.contains(".jsp") || html.contains("spring") { techs.push("Java".into()); }
-    if html.contains("golang") || html.contains("gin-gonic") { techs.push("Go".into()); }
+    if powered_by.contains("php") || html.contains(".php") || html.contains("phpsessid") {
+        techs.push("PHP".into());
+    }
+    if powered_by.contains("asp.net") || html.contains("__viewstate") || html.contains("aspxauth") {
+        techs.push("ASP.NET".into());
+    }
+    if powered_by.contains("express") || srv.contains("node") || powered_by.contains("koa") {
+        techs.push("Node.js".into());
+    }
+    if html.contains("django") || html.contains("csrfmiddlewaretoken") {
+        techs.push("Python Django".into());
+    }
+    if html.contains("flask") || srv.contains("werkzeug") {
+        techs.push("Python Flask".into());
+    }
+    if powered_by.contains("ruby") || html.contains("rails") || html.contains("authenticity_token")
+    {
+        techs.push("Ruby on Rails".into());
+    }
+    if html.contains("jsessionid")
+        || html.contains("servlet")
+        || html.contains(".jsp")
+        || html.contains("spring")
+    {
+        techs.push("Java".into());
+    }
+    if html.contains("golang") || html.contains("gin-gonic") {
+        techs.push("Go".into());
+    }
 
-    if techs.is_empty() { vec!["Not Detected".into()] } else { techs }
+    if techs.is_empty() {
+        vec!["Not Detected".into()]
+    } else {
+        techs
+    }
 }
 
 // ── 3. Frontend Technologies ────────────────────────────────────────────────
@@ -321,15 +443,33 @@ fn detect_frontend(html: &str, doc: &Html) -> Vec<String> {
     let mut techs = vec![];
     let scripts = collect_script_srcs(doc);
 
-    if scripts.contains("react") || html.contains("data-reactroot") || html.contains("__react") { techs.push("React".into()); }
-    if scripts.contains("vue") || html.contains("v-app") || html.contains("v-cloak") { techs.push("Vue.js".into()); }
-    if scripts.contains("angular") || html.contains("ng-app") || html.contains("ng-version") { techs.push("Angular".into()); }
-    if scripts.contains("svelte") || html.contains("_svelte") { techs.push("Svelte".into()); }
-    if scripts.contains("ember") || html.contains("ember-application") { techs.push("Ember.js".into()); }
-    if scripts.contains("alpine") || html.contains("x-data") { techs.push("Alpine.js".into()); }
-    if scripts.contains("jquery") { techs.push("jQuery".into()); }
+    if scripts.contains("react") || html.contains("data-reactroot") || html.contains("__react") {
+        techs.push("React".into());
+    }
+    if scripts.contains("vue") || html.contains("v-app") || html.contains("v-cloak") {
+        techs.push("Vue.js".into());
+    }
+    if scripts.contains("angular") || html.contains("ng-app") || html.contains("ng-version") {
+        techs.push("Angular".into());
+    }
+    if scripts.contains("svelte") || html.contains("_svelte") {
+        techs.push("Svelte".into());
+    }
+    if scripts.contains("ember") || html.contains("ember-application") {
+        techs.push("Ember.js".into());
+    }
+    if scripts.contains("alpine") || html.contains("x-data") {
+        techs.push("Alpine.js".into());
+    }
+    if scripts.contains("jquery") {
+        techs.push("jQuery".into());
+    }
 
-    if techs.is_empty() { vec!["Not Detected".into()] } else { techs }
+    if techs.is_empty() {
+        vec!["Not Detected".into()]
+    } else {
+        techs
+    }
 }
 
 // ── 4/9. Pattern-based detection (JS libs, Analytics) ───────────────────────
@@ -342,7 +482,11 @@ fn detect_pattern_list(html: &str, doc: &Html, patterns: &[(&str, &[&str])]) -> 
             found.push(name.to_string());
         }
     }
-    if found.is_empty() { vec!["Not Detected".into()] } else { found }
+    if found.is_empty() {
+        vec!["Not Detected".into()]
+    } else {
+        found
+    }
 }
 
 // ── 5. CSS Frameworks ───────────────────────────────────────────────────────
@@ -356,7 +500,11 @@ fn detect_css(html: &str, doc: &Html) -> Vec<String> {
             found.push(name.to_string());
         }
     }
-    if found.is_empty() { vec!["Not Detected".into()] } else { found }
+    if found.is_empty() {
+        vec!["Not Detected".into()]
+    } else {
+        found
+    }
 }
 
 // ── 6/7. Content-based detection (CMS, E-commerce) ─────────────────────────
@@ -368,7 +516,11 @@ fn detect_by_content(html: &str, patterns: &[(&str, &[&str])]) -> Vec<String> {
             found.push(name.to_string());
         }
     }
-    if found.is_empty() { vec!["Not Detected".into()] } else { found }
+    if found.is_empty() {
+        vec!["Not Detected".into()]
+    } else {
+        found
+    }
 }
 
 // ── 8. CDN ──────────────────────────────────────────────────────────────────
@@ -378,30 +530,58 @@ fn detect_cdn(server: &str, headers: &reqwest::header::HeaderMap, html: &str) ->
     let s = server.to_lowercase();
     let via = get_header(headers, "via").to_lowercase();
 
-    if s.contains("cloudflare") || headers.contains_key("cf-ray") { found.push("Cloudflare".into()); }
-    if s.contains("cloudfront") || via.contains("cloudfront") || headers.contains_key("x-amz-cf-id") { found.push("AWS CloudFront".into()); }
-    if s.contains("fastly") || via.contains("fastly") { found.push("Fastly".into()); }
-    if s.contains("keycdn") { found.push("KeyCDN".into()); }
-    if html.contains("maxcdn") { found.push("MaxCDN".into()); }
-    if s.contains("akamai") || headers.contains_key("x-akamai-transformed") { found.push("Akamai".into()); }
+    if s.contains("cloudflare") || headers.contains_key("cf-ray") {
+        found.push("Cloudflare".into());
+    }
+    if s.contains("cloudfront") || via.contains("cloudfront") || headers.contains_key("x-amz-cf-id")
+    {
+        found.push("AWS CloudFront".into());
+    }
+    if s.contains("fastly") || via.contains("fastly") {
+        found.push("Fastly".into());
+    }
+    if s.contains("keycdn") {
+        found.push("KeyCDN".into());
+    }
+    if html.contains("maxcdn") {
+        found.push("MaxCDN".into());
+    }
+    if s.contains("akamai") || headers.contains_key("x-akamai-transformed") {
+        found.push("Akamai".into());
+    }
 
-    if found.is_empty() { vec!["Not Detected".into()] } else { found }
+    if found.is_empty() {
+        vec!["Not Detected".into()]
+    } else {
+        found
+    }
 }
 
 // ── 10. Security Headers ────────────────────────────────────────────────────
 
-fn analyze_security_headers(headers: &reqwest::header::HeaderMap) -> HashMap<String, SecurityHeaderInfo> {
+fn analyze_security_headers(
+    headers: &reqwest::header::HeaderMap,
+) -> HashMap<String, SecurityHeaderInfo> {
     let mut result = HashMap::new();
     for &(name, importance) in SECURITY_HEADERS {
         let present = headers.contains_key(name);
-        let value = headers.get(name)
+        let value = headers
+            .get(name)
             .and_then(|v| v.to_str().ok())
-            .unwrap_or("Not Set").to_string();
-        result.insert(name.to_string(), SecurityHeaderInfo {
-            present,
-            value,
-            security_level: if present { importance.to_string() } else { "Low".into() },
-        });
+            .unwrap_or("Not Set")
+            .to_string();
+        result.insert(
+            name.to_string(),
+            SecurityHeaderInfo {
+                present,
+                value,
+                security_level: if present {
+                    importance.to_string()
+                } else {
+                    "Low".into()
+                },
+            },
+        );
     }
     result
 }
@@ -418,7 +598,9 @@ fn detect_vulnerabilities(html: &str, headers: &reqwest::header::HeaderMap) -> V
         ("X-XSS-Protection", "XSS Protection Header Missing"),
     ];
     for &(header, risk) in &required {
-        if !headers.contains_key(header) { missing.push(risk.to_string()); }
+        if !headers.contains_key(header) {
+            missing.push(risk.to_string());
+        }
     }
 
     let mut insecure = vec![];
@@ -434,19 +616,31 @@ fn detect_vulnerabilities(html: &str, headers: &reqwest::header::HeaderMap) -> V
         (r"sql.*error", "SQL errors exposed"),
     ];
     for &(pattern, desc) in &debug_patterns {
-        if Regex::new(pattern).ok().map(|r| r.is_match(html)).unwrap_or(false) {
+        if Regex::new(pattern)
+            .ok()
+            .map(|r| r.is_match(html))
+            .unwrap_or(false)
+        {
             exposed.push(desc.to_string());
         }
     }
 
-    VulnerabilityInfo { missing_security_headers: missing, insecure_practices: insecure, exposed_information: exposed }
+    VulnerabilityInfo {
+        missing_security_headers: missing,
+        insecure_practices: insecure,
+        exposed_information: exposed,
+    }
 }
 
 // ── 12. Information Disclosure ───────────────────────────────────────────────
 
 fn detect_disclosure(html: &str, server: &str, powered_by: &str) -> DisclosureInfo {
     let mut server_info = vec![];
-    if Regex::new(r"/[\d\.]+").ok().map(|r| r.is_match(server)).unwrap_or(false) {
+    if Regex::new(r"/[\d\.]+")
+        .ok()
+        .map(|r| r.is_match(server))
+        .unwrap_or(false)
+    {
         server_info.push(format!("Server version exposed: {}", server));
     }
 
@@ -456,12 +650,24 @@ fn detect_disclosure(html: &str, server: &str, powered_by: &str) -> DisclosureIn
     }
 
     let mut files = vec![];
-    if html.contains("c:\\") || html.contains("c:/") { files.push("Windows file paths exposed".into()); }
-    if html.contains("/var/www/") { files.push("Linux file paths exposed".into()); }
-    if html.contains("/home/") { files.push("User directories exposed".into()); }
-    if html.contains(".env") { files.push("Environment files referenced".into()); }
+    if html.contains("c:\\") || html.contains("c:/") {
+        files.push("Windows file paths exposed".into());
+    }
+    if html.contains("/var/www/") {
+        files.push("Linux file paths exposed".into());
+    }
+    if html.contains("/home/") {
+        files.push("User directories exposed".into());
+    }
+    if html.contains(".env") {
+        files.push("Environment files referenced".into());
+    }
 
-    DisclosureInfo { server_info, technology_disclosure: tech, file_exposure: files }
+    DisclosureInfo {
+        server_info,
+        technology_disclosure: tech,
+        file_exposure: files,
+    }
 }
 
 // ── 13. Security Services (WAF) ─────────────────────────────────────────────
@@ -469,7 +675,10 @@ fn detect_disclosure(html: &str, server: &str, powered_by: &str) -> DisclosureIn
 fn detect_waf(headers_str: &str, html: &str) -> SecurityServicesInfo {
     let mut waf = vec![];
     for &(name, indicators) in WAF_INDICATORS {
-        if indicators.iter().any(|i| headers_str.contains(i) || html.contains(i)) {
+        if indicators
+            .iter()
+            .any(|i| headers_str.contains(i) || html.contains(i))
+        {
             waf.push(name.to_string());
         }
     }
@@ -479,13 +688,18 @@ fn detect_waf(headers_str: &str, html: &str) -> SecurityServicesInfo {
 // ── 14. Cookie Security ─────────────────────────────────────────────────────
 
 fn analyze_cookies(headers: &reqwest::header::HeaderMap) -> CookieSecurityInfo {
-    let cookie_str = headers.get("set-cookie")
-        .and_then(|v| v.to_str().ok()).unwrap_or("");
+    let cookie_str = headers
+        .get("set-cookie")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
 
     if cookie_str.is_empty() {
         return CookieSecurityInfo {
-            secure_flag: false, httponly_flag: false, samesite_attribute: false,
-            security_score: 0, security_level: "N/A".into(),
+            secure_flag: false,
+            httponly_flag: false,
+            samesite_attribute: false,
+            security_score: 0,
+            security_level: "N/A".into(),
             recommendations: vec!["No cookies detected".into()],
         };
     }
@@ -496,37 +710,71 @@ fn analyze_cookies(headers: &reqwest::header::HeaderMap) -> CookieSecurityInfo {
 
     let mut score = 0u32;
     let mut recs = vec![];
-    if secure { score += 40; } else { recs.push("Add Secure flag to cookies".into()); }
-    if httponly { score += 30; } else { recs.push("Add HttpOnly flag to prevent XSS".into()); }
-    if samesite { score += 30; } else { recs.push("Add SameSite attribute for CSRF protection".into()); }
+    if secure {
+        score += 40;
+    } else {
+        recs.push("Add Secure flag to cookies".into());
+    }
+    if httponly {
+        score += 30;
+    } else {
+        recs.push("Add HttpOnly flag to prevent XSS".into());
+    }
+    if samesite {
+        score += 30;
+    } else {
+        recs.push("Add SameSite attribute for CSRF protection".into());
+    }
 
-    let level = if score >= 90 { "Excellent" } else if score >= 70 { "Good" }
-        else if score >= 50 { "Fair" } else { "Poor" };
+    let level = if score >= 90 {
+        "Excellent"
+    } else if score >= 70 {
+        "Good"
+    } else if score >= 50 {
+        "Fair"
+    } else {
+        "Poor"
+    };
 
-    CookieSecurityInfo { secure_flag: secure, httponly_flag: httponly, samesite_attribute: samesite,
-        security_score: score, security_level: level.into(), recommendations: recs }
+    CookieSecurityInfo {
+        secure_flag: secure,
+        httponly_flag: httponly,
+        samesite_attribute: samesite,
+        security_score: score,
+        security_level: level.into(),
+        recommendations: recs,
+    }
 }
 
 // ── 15. WordPress Analysis ──────────────────────────────────────────────────
 
 fn is_wp(html: &str) -> bool {
     let indicators = [
-        html.contains("wp-content/"), html.contains("wp-includes/"),
-        html.contains("wp-admin/"), html.contains("wp-json/"),
+        html.contains("wp-content/"),
+        html.contains("wp-includes/"),
+        html.contains("wp-admin/"),
+        html.contains("wp-json/"),
         html.contains("xmlrpc.php"),
     ];
     indicators.iter().filter(|&&x| x).count() >= 2
 }
 
 async fn analyze_wordpress(
-    client: &Client, domain: &str, html: &str,
-    version: String, theme: String, plugins: Vec<String>,
+    client: &Client,
+    domain: &str,
+    html: &str,
+    version: String,
+    theme: String,
+    plugins: Vec<String>,
 ) -> WordPressAnalysis {
     let base_url = format!("https://{}", domain);
 
     // Confidence
-    let confidence = if html.contains("wp-content/") && html.contains("wp-includes/") { "High" }
-        else { "Medium" };
+    let confidence = if html.contains("wp-content/") && html.contains("wp-includes/") {
+        "High"
+    } else {
+        "Medium"
+    };
 
     // Users via REST API
     let users_found = enumerate_wp_users(client, &base_url).await;
@@ -542,21 +790,42 @@ async fn analyze_wordpress(
     let login = check_wp_endpoint(client, &format!("{}/wp-login.php", base_url)).await;
 
     // Debug
-    let debug = html.contains("wp_debug") ||
-        Regex::new(r"fatal error.*wp-").ok().map(|r| r.is_match(html)).unwrap_or(false);
+    let debug = html.contains("wp_debug")
+        || Regex::new(r"fatal error.*wp-")
+            .ok()
+            .map(|r| r.is_match(html))
+            .unwrap_or(false);
 
     // Security issues
     let mut issues = vec![];
-    if rest_api { issues.push("REST API enabled - user enumeration possible".into()); }
-    if xmlrpc { issues.push("XML-RPC enabled - brute force risk".into()); }
-    if debug { issues.push("Debug information potentially exposed".into()); }
-    if !users_found.is_empty() { issues.push(format!("{} users enumerated via REST API", users_found.len())); }
+    if rest_api {
+        issues.push("REST API enabled - user enumeration possible".into());
+    }
+    if xmlrpc {
+        issues.push("XML-RPC enabled - brute force risk".into());
+    }
+    if debug {
+        issues.push("Debug information potentially exposed".into());
+    }
+    if !users_found.is_empty() {
+        issues.push(format!(
+            "{} users enumerated via REST API",
+            users_found.len()
+        ));
+    }
 
     WordPressAnalysis {
-        confidence: confidence.into(), version, theme, plugins,
-        users_found, rest_api_enabled: rest_api, xmlrpc_enabled: xmlrpc,
-        admin_accessible: admin, login_accessible: login,
-        debug_enabled: debug, security_issues: issues,
+        confidence: confidence.into(),
+        version,
+        theme,
+        plugins,
+        users_found,
+        rest_api_enabled: rest_api,
+        xmlrpc_enabled: xmlrpc,
+        admin_accessible: admin,
+        login_accessible: login,
+        debug_enabled: debug,
+        security_issues: issues,
     }
 }
 
@@ -566,7 +835,10 @@ fn extract_wp_version(html: &str, doc: &Html) -> String {
         if let Some(el) = doc.select(&sel).next() {
             if let Some(content) = el.value().attr("content") {
                 if content.to_lowercase().contains("wordpress") {
-                    if let Some(m) = Regex::new(r"(?i)wordpress\s+([\d\.]+)").ok().and_then(|r| r.captures(content)) {
+                    if let Some(m) = Regex::new(r"(?i)wordpress\s+([\d\.]+)")
+                        .ok()
+                        .and_then(|r| r.captures(content))
+                    {
                         return m.get(1).unwrap().as_str().to_string();
                     }
                 }
@@ -574,7 +846,10 @@ fn extract_wp_version(html: &str, doc: &Html) -> String {
         }
     }
     // Regex on HTML
-    if let Some(m) = Regex::new(r#"ver=([\d\.]+)"#).ok().and_then(|r| r.captures(html)) {
+    if let Some(m) = Regex::new(r#"ver=([\d\.]+)"#)
+        .ok()
+        .and_then(|r| r.captures(html))
+    {
         return m.get(1).unwrap().as_str().to_string();
     }
     "Unknown".into()
@@ -585,7 +860,10 @@ fn extract_wp_theme(doc: &Html) -> String {
         for el in doc.select(&sel) {
             if let Some(href) = el.value().attr("href") {
                 if href.contains("wp-content/themes/") {
-                    if let Some(m) = Regex::new(r"/wp-content/themes/([^/]+)").ok().and_then(|r| r.captures(href)) {
+                    if let Some(m) = Regex::new(r"/wp-content/themes/([^/]+)")
+                        .ok()
+                        .and_then(|r| r.captures(href))
+                    {
                         return m.get(1).unwrap().as_str().to_string();
                     }
                 }
@@ -603,9 +881,16 @@ fn extract_wp_plugins(html: &str, doc: &Html) -> Vec<String> {
     for sel_str in &selectors {
         if let Ok(sel) = Selector::parse(sel_str) {
             for el in doc.select(&sel) {
-                let attr = el.value().attr("src").or_else(|| el.value().attr("href")).unwrap_or("");
+                let attr = el
+                    .value()
+                    .attr("src")
+                    .or_else(|| el.value().attr("href"))
+                    .unwrap_or("");
                 if attr.contains("wp-content/plugins/") {
-                    if let Some(m) = Regex::new(r"/wp-content/plugins/([^/]+)").ok().and_then(|r| r.captures(attr)) {
+                    if let Some(m) = Regex::new(r"/wp-content/plugins/([^/]+)")
+                        .ok()
+                        .and_then(|r| r.captures(attr))
+                    {
                         plugins.insert(m.get(1).unwrap().as_str().to_string());
                     }
                 }
@@ -621,12 +906,16 @@ fn extract_wp_plugins(html: &str, doc: &Html) -> Vec<String> {
     }
 
     // Map slugs to names
-    plugins.into_iter().map(|slug| {
-        WP_KNOWN_PLUGINS.iter()
-            .find(|&&(s, _)| s == slug.as_str())
-            .map(|&(_, name)| name.to_string())
-            .unwrap_or_else(|| slug.replace('-', " "))
-    }).collect()
+    plugins
+        .into_iter()
+        .map(|slug| {
+            WP_KNOWN_PLUGINS
+                .iter()
+                .find(|&&(s, _)| s == slug.as_str())
+                .map(|&(_, name)| name.to_string())
+                .unwrap_or_else(|| slug.replace('-', " "))
+        })
+        .collect()
 }
 
 async fn enumerate_wp_users(client: &Client, base_url: &str) -> Vec<WpUser> {
@@ -634,13 +923,16 @@ async fn enumerate_wp_users(client: &Client, base_url: &str) -> Vec<WpUser> {
     match client.get(&url).send().await {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(users) = resp.json::<Vec<serde_json::Value>>().await {
-                return users.iter().filter_map(|u| {
-                    Some(WpUser {
-                        id: u.get("id")?.as_u64()?,
-                        username: u.get("slug")?.as_str()?.to_string(),
-                        display_name: u.get("name")?.as_str()?.to_string(),
+                return users
+                    .iter()
+                    .filter_map(|u| {
+                        Some(WpUser {
+                            id: u.get("id")?.as_u64()?,
+                            username: u.get("slug")?.as_str()?.to_string(),
+                            display_name: u.get("name")?.as_str()?.to_string(),
+                        })
                     })
-                }).collect();
+                    .collect();
             }
         }
         _ => {}
@@ -658,9 +950,11 @@ async fn check_wp_endpoint(client: &Client, url: &str) -> bool {
 async fn check_wp_xmlrpc(client: &Client, base_url: &str) -> bool {
     let url = format!("{}/xmlrpc.php", base_url);
     match client.get(&url).send().await {
-        Ok(r) if r.status().is_success() => {
-            r.text().await.unwrap_or_default().contains("XML-RPC server accepts POST requests only")
-        }
+        Ok(r) if r.status().is_success() => r
+            .text()
+            .await
+            .unwrap_or_default()
+            .contains("XML-RPC server accepts POST requests only"),
         _ => false,
     }
 }
@@ -697,7 +991,9 @@ fn calculate_score(
     }
 
     // Info disclosure (−5 each)
-    let disc_count = disclosure.server_info.len() + disclosure.technology_disclosure.len() + disclosure.file_exposure.len();
+    let disc_count = disclosure.server_info.len()
+        + disclosure.technology_disclosure.len()
+        + disclosure.file_exposure.len();
     score -= disc_count as i32 * 5;
 
     // WAF bonus (+5)
@@ -724,15 +1020,24 @@ fn calculate_score(
     let final_score = score.clamp(0, 100) as u32;
 
     let grade = match final_score {
-        90..=100 => "A+", 85..=89 => "A", 80..=84 => "A-",
-        75..=79 => "B+", 70..=74 => "B", 65..=69 => "B-",
-        60..=64 => "C+", 55..=59 => "C", 50..=54 => "C-",
-        40..=49 => "D", _ => "F",
+        90..=100 => "A+",
+        85..=89 => "A",
+        80..=84 => "A-",
+        75..=79 => "B+",
+        70..=74 => "B",
+        65..=69 => "B-",
+        60..=64 => "C+",
+        55..=59 => "C",
+        50..=54 => "C-",
+        40..=49 => "D",
+        _ => "F",
     };
 
     let risk = match final_score {
-        80..=100 => "Low Risk", 60..=79 => "Medium Risk",
-        40..=59 => "High Risk", _ => "Critical Risk",
+        80..=100 => "Low Risk",
+        60..=79 => "Medium Risk",
+        40..=59 => "High Risk",
+        _ => "Critical Risk",
     };
 
     SecurityScoreResult {
@@ -747,7 +1052,11 @@ fn calculate_score(
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 fn get_header(headers: &reqwest::header::HeaderMap, name: &str) -> String {
-    headers.get(name).and_then(|v| v.to_str().ok()).unwrap_or("").to_string()
+    headers
+        .get(name)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .to_string()
 }
 
 fn collect_script_srcs(doc: &Html) -> String {

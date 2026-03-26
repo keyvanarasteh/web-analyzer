@@ -1,7 +1,7 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use std::collections::HashMap;
+use std::time::Duration;
 
 // ── Data Structures ─────────────────────────────────────────────────────────
 
@@ -37,13 +37,20 @@ pub struct AiCrawlerResult {
 // ── AI bot list ─────────────────────────────────────────────────────────────
 
 const AI_BOTS: &[&str] = &[
-    "GPTBot", "ChatGPT-User", "ClaudeBot", "Claude-Web",
-    "Applebot-Extended", "OAI-SearchBot", "PerplexityBot",
+    "GPTBot",
+    "ChatGPT-User",
+    "ClaudeBot",
+    "Claude-Web",
+    "Applebot-Extended",
+    "OAI-SearchBot",
+    "PerplexityBot",
 ];
 
 // ── Main function ───────────────────────────────────────────────────────────
 
-pub async fn analyze_geo(domain: &str) -> Result<GeoAnalysisResult, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn analyze_geo(
+    domain: &str,
+) -> Result<GeoAnalysisResult, Box<dyn std::error::Error + Send + Sync>> {
     let base_url = if domain.starts_with("http") {
         domain.to_string()
     } else {
@@ -62,7 +69,8 @@ pub async fn analyze_geo(domain: &str) -> Result<GeoAnalysisResult, Box<dyn std:
         let url = format!("{}{}", base_url.trim_end_matches('/'), path);
         if let Ok(resp) = client.get(&url).send().await {
             if resp.status().is_success() {
-                let ct = resp.headers()
+                let ct = resp
+                    .headers()
                     .get("content-type")
                     .and_then(|v| v.to_str().ok())
                     .unwrap_or("")
@@ -96,7 +104,8 @@ pub async fn analyze_geo(domain: &str) -> Result<GeoAnalysisResult, Box<dyn std:
                 }
                 let lower = html.to_lowercase();
                 if lower.contains("webmcp") || lower.contains("model context protocol") {
-                    html_features.push("WebMCP/Model Context Protocol references in HTML".to_string());
+                    html_features
+                        .push("WebMCP/Model Context Protocol references in HTML".to_string());
                 }
             }
         }
@@ -105,7 +114,8 @@ pub async fn analyze_geo(domain: &str) -> Result<GeoAnalysisResult, Box<dyn std:
     let mcp_has_anything = !mcp_found.is_empty() || !html_features.is_empty();
 
     // ── 3. Check AI crawler directives in robots.txt ────────────────────
-    let mut directives: HashMap<String, String> = AI_BOTS.iter()
+    let mut directives: HashMap<String, String> = AI_BOTS
+        .iter()
         .map(|b| (b.to_string(), "Unknown".into()))
         .collect();
 
@@ -116,7 +126,9 @@ pub async fn analyze_geo(domain: &str) -> Result<GeoAnalysisResult, Box<dyn std:
                 let mut current_agent: Option<String> = None;
                 for line in body.lines() {
                     let line = line.trim();
-                    if line.is_empty() || line.starts_with('#') { continue; }
+                    if line.is_empty() || line.starts_with('#') {
+                        continue;
+                    }
                     let lower = line.to_lowercase();
 
                     if lower.starts_with("user-agent:") {
@@ -143,14 +155,23 @@ pub async fn analyze_geo(domain: &str) -> Result<GeoAnalysisResult, Box<dyn std:
                 }
                 // Mark remaining unknowns as implicit allow
                 for (_, v) in directives.iter_mut() {
-                    if *v == "Unknown" { *v = "Allowed (Implicit)".into(); }
+                    if *v == "Unknown" {
+                        *v = "Allowed (Implicit)".into();
+                    }
                 }
             }
         }
     }
 
-    let blocked_count = directives.values().filter(|v| v.contains("Blocked")).count();
-    let crawler_status = if blocked_count > AI_BOTS.len() / 2 { "Restrictive" } else { "Permissive" };
+    let blocked_count = directives
+        .values()
+        .filter(|v| v.contains("Blocked"))
+        .count();
+    let crawler_status = if blocked_count > AI_BOTS.len() / 2 {
+        "Restrictive"
+    } else {
+        "Permissive"
+    };
 
     // ── Score calculation ────────────────────────────────────────────────
     let mut score: u32 = 0;
@@ -163,12 +184,18 @@ pub async fn analyze_geo(domain: &str) -> Result<GeoAnalysisResult, Box<dyn std:
     // WebMCP (up to 40 pts)
     if mcp_has_anything {
         score += 20;
-        if !mcp_found.is_empty() { score += 10; }
-        if !html_features.is_empty() { score += 10; }
+        if !mcp_found.is_empty() {
+            score += 10;
+        }
+        if !html_features.is_empty() {
+            score += 10;
+        }
     }
 
     // AI crawlers (20 pts)
-    if crawler_status == "Permissive" { score += 20; }
+    if crawler_status == "Permissive" {
+        score += 20;
+    }
 
     let grade = match score {
         80..=100 => "A (Excellent)".into(),
@@ -180,9 +207,19 @@ pub async fn analyze_geo(domain: &str) -> Result<GeoAnalysisResult, Box<dyn std:
 
     Ok(GeoAnalysisResult {
         domain: domain.to_string(),
-        llms_txt: LlmsTxtResult { found: !llms_found.is_empty(), files: llms_found },
-        webmcp: WebMcpResult { found: mcp_has_anything, endpoints: mcp_found, html_features },
-        ai_crawler_directives: AiCrawlerResult { status: crawler_status.to_string(), bots: directives },
+        llms_txt: LlmsTxtResult {
+            found: !llms_found.is_empty(),
+            files: llms_found,
+        },
+        webmcp: WebMcpResult {
+            found: mcp_has_anything,
+            endpoints: mcp_found,
+            html_features,
+        },
+        ai_crawler_directives: AiCrawlerResult {
+            status: crawler_status.to_string(),
+            bots: directives,
+        },
         geo_score: score,
         geo_grade: grade,
     })

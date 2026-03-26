@@ -9,7 +9,11 @@ const SKIP_PATTERNS: &[&str] = &[
     ".cloudapp.azure.com",
     "clients6.google.com",
     ".cdn.cloudflare.net",
-    "rr1.sn-", "rr2.sn-", "rr3.sn-", "rr4.sn-", "rr5.sn-",
+    "rr1.sn-",
+    "rr2.sn-",
+    "rr3.sn-",
+    "rr4.sn-",
+    "rr5.sn-",
     "e-0014.e-msedge",
     "s-part-",
     ".t-msedge.net",
@@ -22,8 +26,8 @@ const SKIP_PATTERNS: &[&str] = &[
 
 /// Common multi-part TLDs for subdomain detection
 const COMMON_TLDS: &[&str] = &[
-    "co.uk", "com.tr", "gov.tr", "edu.tr", "org.tr", "net.tr",
-    "co.jp", "co.kr", "co.id", "co.in", "com.br", "com.au",
+    "co.uk", "com.tr", "gov.tr", "edu.tr", "org.tr", "net.tr", "co.jp", "co.kr", "co.id", "co.in",
+    "com.br", "com.au",
 ];
 
 // ── Data Structures ─────────────────────────────────────────────────────────
@@ -39,7 +43,9 @@ pub struct SubdomainDiscoveryResult {
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
-pub async fn discover_subdomains(domain: &str) -> Result<SubdomainDiscoveryResult, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn discover_subdomains(
+    domain: &str,
+) -> Result<SubdomainDiscoveryResult, Box<dyn std::error::Error + Send + Sync>> {
     let start_time = Instant::now();
 
     let output = Command::new("subfinder")
@@ -62,9 +68,7 @@ pub async fn discover_subdomains(domain: &str) -> Result<SubdomainDiscoveryResul
     let total_found = raw.len();
 
     // Filter out noise domains
-    let subdomains: Vec<String> = raw.into_iter()
-        .filter(|s| !should_skip(s))
-        .collect();
+    let subdomains: Vec<String> = raw.into_iter().filter(|s| !should_skip(s)).collect();
 
     let filtered_count = total_found - subdomains.len();
     let duration = start_time.elapsed().as_millis();
@@ -100,7 +104,7 @@ pub fn is_subdomain(domain: &str) -> bool {
     }
 
     // Check multi-part TLDs
-    let suffix = format!("{}.{}", parts[parts.len()-2], parts[parts.len()-1]);
+    let suffix = format!("{}.{}", parts[parts.len() - 2], parts[parts.len() - 1]);
     if COMMON_TLDS.contains(&suffix.as_str()) {
         return parts.len() > 3;
     }
@@ -110,6 +114,9 @@ pub fn is_subdomain(domain: &str) -> bool {
 
 impl qicro_data_core::registry::Registrable for SubdomainDiscoveryResult {
     fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SubdomainDiscoveryResult", "subdomaindiscoveryresult")
+        qicro_data_core::registry::ModelMeta::new(
+            "SubdomainDiscoveryResult",
+            "subdomaindiscoveryresult",
+        )
     }
 }

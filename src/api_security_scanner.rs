@@ -1,5 +1,5 @@
-use reqwest::Client;
 use regex::Regex;
+use reqwest::Client;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -40,37 +40,75 @@ pub struct ApiScanResult {
 // ── HTML killwords — definitive NOT-API indicators ──────────────────────────
 
 const HTML_KILLERS: &[&str] = &[
-    "<!doctype html", "<html", "<head>", "<body>", "<title>",
-    "<div", "<form", "<table", "<script", "not found</title>",
-    "404 not found", "404 - not found", "page not found", "file not found",
-    "apache/2.", "nginx/", "microsoft-iis", "server error",
-    "access denied", "forbidden", "directory listing", "index of /",
-    "<h1>404</h1>", "<h1>error</h1>",
+    "<!doctype html",
+    "<html",
+    "<head>",
+    "<body>",
+    "<title>",
+    "<div",
+    "<form",
+    "<table",
+    "<script",
+    "not found</title>",
+    "404 not found",
+    "404 - not found",
+    "page not found",
+    "file not found",
+    "apache/2.",
+    "nginx/",
+    "microsoft-iis",
+    "server error",
+    "access denied",
+    "forbidden",
+    "directory listing",
+    "index of /",
+    "<h1>404</h1>",
+    "<h1>error</h1>",
 ];
 
 // ── Swagger/OpenAPI documentation indicators ────────────────────────────────
 
 const DOC_INDICATORS: &[&str] = &[
-    "\"openapi\":", "\"swagger\":", "\"info\":", "\"paths\":",
-    "\"components\":", "\"definitions\":", "\"host\":",
-    "\"basepath\":", "\"schemes\":", "\"consumes\":", "\"produces\":",
+    "\"openapi\":",
+    "\"swagger\":",
+    "\"info\":",
+    "\"paths\":",
+    "\"components\":",
+    "\"definitions\":",
+    "\"host\":",
+    "\"basepath\":",
+    "\"schemes\":",
+    "\"consumes\":",
+    "\"produces\":",
 ];
 
 const DOC_URL_HINTS: &[&str] = &[
-    "openapi", "swagger", "docs", "spec", "schema", "definition",
-    ".json", ".yaml", ".yml",
+    "openapi",
+    "swagger",
+    "docs",
+    "spec",
+    "schema",
+    "definition",
+    ".json",
+    ".yaml",
+    ".yml",
 ];
 
 // ── API-specific response headers ───────────────────────────────────────────
 
 const API_HEADERS: &[&str] = &[
-    "x-api-version", "x-api-key", "x-rate-limit", "x-ratelimit",
-    "x-request-id", "x-correlation-id", "x-trace-id",
+    "x-api-version",
+    "x-api-key",
+    "x-rate-limit",
+    "x-ratelimit",
+    "x-request-id",
+    "x-correlation-id",
+    "x-trace-id",
 ];
 
 const FRAMEWORK_SERVERS: &[&str] = &[
-    "express", "koa", "fastify", "spring", "django",
-    "flask", "tornado", "rails", "sinatra", "fastapi",
+    "express", "koa", "fastify", "spring", "django", "flask", "tornado", "rails", "sinatra",
+    "fastapi",
 ];
 
 // ── Auth error patterns (regex) ─────────────────────────────────────────────
@@ -134,7 +172,9 @@ const JS_API_PATTERNS: &[&str] = &[
 
 // ── Main scanner ────────────────────────────────────────────────────────────
 
-pub async fn scan_api_endpoints(domain: &str) -> Result<ApiScanResult, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn scan_api_endpoints(
+    domain: &str,
+) -> Result<ApiScanResult, Box<dyn std::error::Error + Send + Sync>> {
     let base_url = if domain.starts_with("http") {
         domain.to_string()
     } else {
@@ -210,7 +250,8 @@ pub async fn scan_api_endpoints(domain: &str) -> Result<ApiScanResult, Box<dyn s
         vulnerabilities.append(&mut findings);
 
         // Early exit on excessive criticals
-        let critical_count = vulnerabilities.iter()
+        let critical_count = vulnerabilities
+            .iter()
             .filter(|v| v.severity == "CRITICAL")
             .count();
         if critical_count >= 10 {
@@ -254,11 +295,19 @@ async fn verify_endpoint(client: &Client, url: &str) -> Option<ApiEndpoint> {
             continue;
         }
 
-        let headers: Vec<(String, String)> = resp.headers().iter()
-            .map(|(k, v)| (k.as_str().to_lowercase(), v.to_str().unwrap_or("").to_lowercase()))
+        let headers: Vec<(String, String)> = resp
+            .headers()
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.as_str().to_lowercase(),
+                    v.to_str().unwrap_or("").to_lowercase(),
+                )
+            })
             .collect();
 
-        let content_type = headers.iter()
+        let content_type = headers
+            .iter()
             .find(|(k, _)| k == "content-type")
             .map(|(_, v)| v.as_str())
             .unwrap_or("");
@@ -281,7 +330,11 @@ async fn verify_endpoint(client: &Client, url: &str) -> Option<ApiEndpoint> {
             continue;
         }
 
-        let sample = if body.len() > 5000 { &body[..5000] } else { &body };
+        let sample = if body.len() > 5000 {
+            &body[..5000]
+        } else {
+            &body
+        };
         let sample_lower = sample.to_lowercase();
 
         // HTML killer filter
@@ -292,7 +345,8 @@ async fn verify_endpoint(client: &Client, url: &str) -> Option<ApiEndpoint> {
         // Documentation file detection
         let is_doc_url = DOC_URL_HINTS.iter().any(|h| url.to_lowercase().contains(h));
         if is_doc_url {
-            let doc_score: usize = DOC_INDICATORS.iter()
+            let doc_score: usize = DOC_INDICATORS
+                .iter()
                 .filter(|d| sample_lower.contains(*d))
                 .count();
             if doc_score >= 3 {
@@ -305,7 +359,9 @@ async fn verify_endpoint(client: &Client, url: &str) -> Option<ApiEndpoint> {
             // Verify valid JSON
             if serde_json::from_str::<serde_json::Value>(sample).is_ok() {
                 Some("REST/JSON".to_string())
-            } else { None }
+            } else {
+                None
+            }
         } else if content_type.contains("application/xml") || content_type.contains("text/xml") {
             Some("REST/XML".to_string())
         } else if content_type.contains("graphql") {
@@ -327,13 +383,22 @@ async fn verify_endpoint(client: &Client, url: &str) -> Option<ApiEndpoint> {
 
         // Auth-protected endpoint detection (401/403)
         if matches!(status, 401 | 403) {
-            let auth_headers = ["www-authenticate", "x-api-key", "x-auth-token", "x-rate-limit"];
-            if auth_headers.iter().any(|h| headers.iter().any(|(k, _)| k == h)) {
+            let auth_headers = [
+                "www-authenticate",
+                "x-api-key",
+                "x-auth-token",
+                "x-rate-limit",
+            ];
+            if auth_headers
+                .iter()
+                .any(|h| headers.iter().any(|(k, _)| k == h))
+            {
                 votes.push(("Protected API".to_string(), status));
                 continue;
             }
             // Check body for API-style auth errors
-            let auth_regexes: Vec<Regex> = AUTH_ERROR_PATTERNS.iter()
+            let auth_regexes: Vec<Regex> = AUTH_ERROR_PATTERNS
+                .iter()
                 .filter_map(|p| Regex::new(p).ok())
                 .collect();
             if auth_regexes.iter().any(|rx| rx.is_match(&sample_lower)) {
@@ -343,20 +408,24 @@ async fn verify_endpoint(client: &Client, url: &str) -> Option<ApiEndpoint> {
         }
 
         // API structure pattern scoring
-        let structure_regexes: Vec<Regex> = API_STRUCTURE_PATTERNS.iter()
+        let structure_regexes: Vec<Regex> = API_STRUCTURE_PATTERNS
+            .iter()
             .filter_map(|p| Regex::new(p).ok())
             .collect();
-        let structure_score: usize = structure_regexes.iter()
+        let structure_score: usize = structure_regexes
+            .iter()
             .filter(|rx| rx.is_match(sample))
             .count();
 
         // API header scoring
-        let api_header_score: usize = API_HEADERS.iter()
+        let api_header_score: usize = API_HEADERS
+            .iter()
             .filter(|h| headers.iter().any(|(k, _)| k == **h))
             .count();
 
         // Framework detection via Server header
-        let framework_score: usize = headers.iter()
+        let framework_score: usize = headers
+            .iter()
             .filter(|(k, _)| k == "server")
             .map(|(_, v)| FRAMEWORK_SERVERS.iter().filter(|f| v.contains(*f)).count() * 2)
             .sum();
@@ -376,8 +445,15 @@ async fn verify_endpoint(client: &Client, url: &str) -> Option<ApiEndpoint> {
     }
 
     // Pick the best vote (prefer 2xx status)
-    let best = votes.iter()
-        .max_by_key(|(_, s)| if *s < 400 { 1000 - *s as i32 } else { -((*s) as i32) })
+    let best = votes
+        .iter()
+        .max_by_key(|(_, s)| {
+            if *s < 400 {
+                1000 - *s as i32
+            } else {
+                -((*s) as i32)
+            }
+        })
         .unwrap();
 
     Some(ApiEndpoint {
@@ -387,7 +463,11 @@ async fn verify_endpoint(client: &Client, url: &str) -> Option<ApiEndpoint> {
     })
 }
 
-fn detect_api_from_headers(content_type: &str, headers: &[(String, String)], status: u16) -> Option<String> {
+fn detect_api_from_headers(
+    content_type: &str,
+    headers: &[(String, String)],
+    status: u16,
+) -> Option<String> {
     if content_type.contains("application/json") {
         return Some("REST/JSON".to_string());
     }
@@ -399,7 +479,10 @@ fn detect_api_from_headers(content_type: &str, headers: &[(String, String)], sta
     }
     if matches!(status, 401 | 403) {
         let auth_headers = ["www-authenticate", "x-api-key", "x-rate-limit"];
-        if auth_headers.iter().any(|h| headers.iter().any(|(k, _)| k == h)) {
+        if auth_headers
+            .iter()
+            .any(|h| headers.iter().any(|(k, _)| k == h))
+        {
             return Some("Protected API".to_string());
         }
     }
@@ -414,7 +497,10 @@ async fn extract_js_endpoints(client: &Client, base_url: &str) -> Vec<String> {
         Ok(r) if r.status().is_success() => r,
         _ => return Vec::new(),
     };
-    let body = match resp.text().await { Ok(t) => t, Err(_) => return Vec::new() };
+    let body = match resp.text().await {
+        Ok(t) => t,
+        Err(_) => return Vec::new(),
+    };
 
     // Collect inline JS
     let mut all_js = String::new();
@@ -439,7 +525,9 @@ async fn extract_js_endpoints(client: &Client, base_url: &str) -> Vec<String> {
     }
 
     for src in external_urls {
-        if endpoints.len() > 10 { break; }
+        if endpoints.len() > 10 {
+            break;
+        }
         if let Some(js_url) = resolve_url(base_url, &src) {
             if let Ok(resp) = client.get(&js_url).send().await {
                 if resp.status().is_success() {
@@ -453,7 +541,8 @@ async fn extract_js_endpoints(client: &Client, base_url: &str) -> Vec<String> {
     }
 
     // Extract API paths from JS content
-    let regexes: Vec<Regex> = JS_API_PATTERNS.iter()
+    let regexes: Vec<Regex> = JS_API_PATTERNS
+        .iter()
         .filter_map(|p| Regex::new(p).ok())
         .collect();
 
@@ -461,10 +550,13 @@ async fn extract_js_endpoints(client: &Client, base_url: &str) -> Vec<String> {
         for cap in rx.captures_iter(&all_js) {
             if let Some(m) = cap.get(1) {
                 let path = m.as_str().trim();
-                if path.is_empty() { continue; }
+                if path.is_empty() {
+                    continue;
+                }
                 // Skip static assets
                 if [".js", ".css", ".png", ".jpg", ".gif", ".ico", ".svg"]
-                    .iter().any(|ext| path.to_lowercase().ends_with(ext))
+                    .iter()
+                    .any(|ext| path.to_lowercase().ends_with(ext))
                 {
                     continue;
                 }
@@ -487,10 +579,15 @@ async fn extract_robots_sitemap_endpoints(client: &Client, base_url: &str) -> Ve
             if let Ok(body) = resp.text().await {
                 for line in body.lines() {
                     let line = line.trim().to_lowercase();
-                    if (line.starts_with("disallow:") || line.starts_with("allow:")) && line.contains(':') {
+                    if (line.starts_with("disallow:") || line.starts_with("allow:"))
+                        && line.contains(':')
+                    {
                         let path = line.split_once(':').map(|(_, v)| v.trim()).unwrap_or("");
-                        if !path.is_empty() && path != "/"
-                            && ["api", "graphql", "rest"].iter().any(|kw| path.contains(kw))
+                        if !path.is_empty()
+                            && path != "/"
+                            && ["api", "graphql", "rest"]
+                                .iter()
+                                .any(|kw| path.contains(kw))
                         {
                             endpoints.insert(format!("{}{}", base_url.trim_end_matches('/'), path));
                         }
@@ -509,7 +606,10 @@ async fn extract_robots_sitemap_endpoints(client: &Client, base_url: &str) -> Ve
                     for cap in rx.captures_iter(&body) {
                         if let Some(m) = cap.get(1) {
                             let url = m.as_str();
-                            if ["api", "graphql", "rest"].iter().any(|kw| url.to_lowercase().contains(kw)) {
+                            if ["api", "graphql", "rest"]
+                                .iter()
+                                .any(|kw| url.to_lowercase().contains(kw))
+                            {
                                 endpoints.insert(url.to_string());
                             }
                         }
@@ -525,8 +625,13 @@ async fn extract_robots_sitemap_endpoints(client: &Client, base_url: &str) -> Ve
 async fn scrape_documentation_endpoints(client: &Client, base_url: &str) -> Vec<String> {
     let mut endpoints = HashSet::new();
     let doc_paths = [
-        "/swagger.json", "/openapi.json", "/api-docs", "/docs",
-        "/swagger", "/api/swagger.json", "/api/docs",
+        "/swagger.json",
+        "/openapi.json",
+        "/api-docs",
+        "/docs",
+        "/swagger",
+        "/api/swagger.json",
+        "/api/docs",
     ];
 
     for path in &doc_paths {
@@ -535,24 +640,23 @@ async fn scrape_documentation_endpoints(client: &Client, base_url: &str) -> Vec<
             Ok(r) if r.status().is_success() => r,
             _ => continue,
         };
-        let body = match resp.text().await { Ok(t) => t, Err(_) => continue };
+        let body = match resp.text().await {
+            Ok(t) => t,
+            Err(_) => continue,
+        };
 
         // Try to parse as JSON and extract "paths" key
         if let Ok(doc) = serde_json::from_str::<serde_json::Value>(&body) {
             if let Some(paths) = doc.get("paths").and_then(|p| p.as_object()) {
                 for path_key in paths.keys() {
                     if path_key.starts_with('/') {
-                        endpoints.insert(
-                            format!("{}{}", base_url.trim_end_matches('/'), path_key)
-                        );
+                        endpoints.insert(format!("{}{}", base_url.trim_end_matches('/'), path_key));
                     }
                 }
             }
             if let Some(base_path) = doc.get("basePath").and_then(|b| b.as_str()) {
                 if !base_path.is_empty() {
-                    endpoints.insert(
-                        format!("{}{}", base_url.trim_end_matches('/'), base_path)
-                    );
+                    endpoints.insert(format!("{}{}", base_url.trim_end_matches('/'), base_path));
                 }
             }
         }
@@ -571,18 +675,31 @@ async fn check_api_subdomains(client: &Client, domain: &str) -> Vec<String> {
         .unwrap_or(domain);
 
     let parts: Vec<&str> = bare_domain.split('.').collect();
-    if parts.len() < 2 { return endpoints; }
+    if parts.len() < 2 {
+        return endpoints;
+    }
 
     let base = format!("{}.{}", parts[parts.len() - 2], parts[parts.len() - 1]);
 
     let prefixes = [
-        "api", "rest", "graphql", "gateway",
-        "api-v1", "api-v2", "api-dev", "dev-api",
-        "api-staging", "staging-api", "mobile-api", "app-api",
-        "admin-api", "auth-api",
+        "api",
+        "rest",
+        "graphql",
+        "gateway",
+        "api-v1",
+        "api-v2",
+        "api-dev",
+        "dev-api",
+        "api-staging",
+        "staging-api",
+        "mobile-api",
+        "app-api",
+        "admin-api",
+        "auth-api",
     ];
 
-    for prefix in &prefixes[..8] { // limit to avoid excessive requests
+    for prefix in &prefixes[..8] {
+        // limit to avoid excessive requests
         for proto in &["https", "http"] {
             let url = format!("{}://{}.{}", proto, prefix, base);
             if let Ok(resp) = client.get(&url).send().await {
@@ -622,7 +739,8 @@ async fn test_sql_injection(client: &Client, endpoint: &str) -> Vec<Vulnerabilit
     let sqli_payloads = payloads::lines(payloads::SQL_INJECTION);
     let params = ["id", "user", "search", "q", "filter"];
 
-    let error_regexes: Vec<Regex> = SQL_ERROR_PATTERNS.iter()
+    let error_regexes: Vec<Regex> = SQL_ERROR_PATTERNS
+        .iter()
         .filter_map(|p| Regex::new(p).ok())
         .collect();
 
@@ -642,7 +760,9 @@ async fn test_sql_injection(client: &Client, endpoint: &str) -> Vec<Vulnerabilit
             let test_url = format!("{}?{}={}", endpoint, param, encoded);
 
             // Time-based detection
-            if payload.to_uppercase().contains("SLEEP") || payload.to_uppercase().contains("WAITFOR") {
+            if payload.to_uppercase().contains("SLEEP")
+                || payload.to_uppercase().contains("WAITFOR")
+            {
                 let start = Instant::now();
                 if let Ok(resp) = client.get(&test_url).send().await {
                     let elapsed = start.elapsed().as_secs_f64();
@@ -707,15 +827,25 @@ async fn test_xss(client: &Client, endpoint: &str) -> Vec<VulnerabilityFinding> 
                 Err(_) => continue,
             };
 
-            if !resp.status().is_success() { continue; }
+            if !resp.status().is_success() {
+                continue;
+            }
 
-            let ct = resp.headers().get("content-type")
+            let ct = resp
+                .headers()
+                .get("content-type")
                 .and_then(|v| v.to_str().ok())
-                .unwrap_or("").to_lowercase();
+                .unwrap_or("")
+                .to_lowercase();
 
-            if !ct.contains("text/html") { continue; }
+            if !ct.contains("text/html") {
+                continue;
+            }
 
-            let body = match resp.text().await { Ok(t) => t, Err(_) => continue };
+            let body = match resp.text().await {
+                Ok(t) => t,
+                Err(_) => continue,
+            };
 
             // Payload reflected unencoded in HTML
             if body.contains(payload) && !is_payload_safe_context(&body, payload) {
@@ -783,7 +913,10 @@ async fn test_ssti(client: &Client, endpoint: &str) -> Vec<VulnerabilityFinding>
             let test_url = format!("{}?{}={}", endpoint, param, encoded);
 
             if let Some(body) = fetch_body(client, &test_url).await {
-                if body.contains(expected) && !body.contains(payload) && !baseline.contains(expected) {
+                if body.contains(expected)
+                    && !body.contains(payload)
+                    && !baseline.contains(expected)
+                {
                     findings.push(VulnerabilityFinding {
                         vuln_type: "SSTI".into(),
                         subtype: "Template Injection".into(),
@@ -808,7 +941,14 @@ async fn test_ssrf(client: &Client, endpoint: &str) -> Vec<VulnerabilityFinding>
     let mut findings = Vec::new();
     let ssrf_payloads = payloads::lines(payloads::SSRF);
     let params = ["url", "uri", "path", "dest", "redirect"];
-    let indicators = ["root:", "daemon:", "localhost", "metadata", "ami-id", "instance-id"];
+    let indicators = [
+        "root:",
+        "daemon:",
+        "localhost",
+        "metadata",
+        "ami-id",
+        "instance-id",
+    ];
 
     for param in &params[..3] {
         for payload in ssrf_payloads.iter().take(3) {
@@ -854,7 +994,8 @@ async fn test_auth_bypass(client: &Client, endpoint: &str) -> Vec<VulnerabilityF
     let bypass_headers = payloads::auth_headers(payloads::AUTH_BYPASS_HEADERS);
 
     for (name, value) in bypass_headers.iter().take(10) {
-        let resp = match client.get(endpoint)
+        let resp = match client
+            .get(endpoint)
             .header(name.as_ref() as &str, value.as_ref() as &str)
             .send()
             .await
@@ -923,7 +1064,8 @@ async fn test_nosql_injection(client: &Client, endpoint: &str) -> Vec<Vulnerabil
     let nosql_payloads = payloads::lines(payloads::NOSQL_INJECTION);
 
     for payload in nosql_payloads.iter().take(3) {
-        let resp = match client.post(endpoint)
+        let resp = match client
+            .post(endpoint)
             .header("Content-Type", "application/json")
             .body(payload.to_string())
             .send()
@@ -934,7 +1076,10 @@ async fn test_nosql_injection(client: &Client, endpoint: &str) -> Vec<Vulnerabil
         };
 
         if matches!(resp.status().as_u16(), 200 | 201) {
-            let body = match resp.text().await { Ok(t) => t, Err(_) => continue };
+            let body = match resp.text().await {
+                Ok(t) => t,
+                Err(_) => continue,
+            };
             if body.len() > 100 && !body.to_lowercase().contains("error") {
                 findings.push(VulnerabilityFinding {
                     vuln_type: "NOSQL_INJECTION".into(),
@@ -961,7 +1106,8 @@ async fn test_xxe(client: &Client, endpoint: &str) -> Vec<VulnerabilityFinding> 
     let indicators = ["root:", "daemon:", "Windows", "[fonts]"];
 
     for payload in xxe_payloads.iter().take(2) {
-        let resp = match client.post(endpoint)
+        let resp = match client
+            .post(endpoint)
             .header("Content-Type", "application/xml")
             .body(payload.to_string())
             .send()
@@ -972,7 +1118,10 @@ async fn test_xxe(client: &Client, endpoint: &str) -> Vec<VulnerabilityFinding> 
         };
 
         if resp.status().is_success() {
-            let body = match resp.text().await { Ok(t) => t, Err(_) => continue };
+            let body = match resp.text().await {
+                Ok(t) => t,
+                Err(_) => continue,
+            };
             for indicator in &indicators {
                 if body.contains(indicator) {
                     findings.push(VulnerabilityFinding {
@@ -1032,7 +1181,9 @@ async fn test_lfi(client: &Client, endpoint: &str) -> Vec<VulnerabilityFinding> 
 
 async fn fetch_body(client: &Client, url: &str) -> Option<String> {
     let resp = client.get(url).send().await.ok()?;
-    if resp.status().as_u16() == 404 { return None; }
+    if resp.status().as_u16() == 404 {
+        return None;
+    }
     resp.text().await.ok()
 }
 

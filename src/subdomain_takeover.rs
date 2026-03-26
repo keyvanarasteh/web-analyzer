@@ -13,42 +13,222 @@ struct VulnService {
 }
 
 const VULNERABLE_SERVICES: &[VulnService] = &[
-    VulnService { name: "AWS S3 Bucket",         cname_pattern: "s3.amazonaws.com",       error_pattern: "NoSuchBucket",                                            additional: "The specified bucket does not exist" },
-    VulnService { name: "AWS CloudFront",         cname_pattern: "cloudfront.net",         error_pattern: "The request could not be satisfied",                      additional: "Bad request" },
-    VulnService { name: "GitHub Pages",           cname_pattern: "github.io",              error_pattern: "There isn't a GitHub Pages site here",                    additional: "404: Not Found" },
-    VulnService { name: "Heroku",                 cname_pattern: "herokuapp.com",          error_pattern: "No such app",                                             additional: "heroku" },
-    VulnService { name: "Vercel",                 cname_pattern: "vercel.app",             error_pattern: "404: Not Found",                                          additional: "The deployment could not be found" },
-    VulnService { name: "Netlify",                cname_pattern: "netlify.app",            error_pattern: "Not found",                                               additional: "netlify" },
-    VulnService { name: "Azure App Service",      cname_pattern: "azurewebsites.net",      error_pattern: "Microsoft Azure App Service",                             additional: "404 Not Found" },
-    VulnService { name: "Azure TrafficManager",   cname_pattern: "trafficmanager.net",     error_pattern: "Page not found",                                          additional: "Not found" },
-    VulnService { name: "Zendesk",                cname_pattern: "zendesk.com",            error_pattern: "Help Center Closed",                                      additional: "Zendesk" },
-    VulnService { name: "Shopify",                cname_pattern: "myshopify.com",          error_pattern: "Sorry, this shop is currently unavailable",                additional: "Shopify" },
-    VulnService { name: "Fastly",                 cname_pattern: "fastly.net",             error_pattern: "Fastly error: unknown domain",                            additional: "Fastly" },
-    VulnService { name: "Pantheon",               cname_pattern: "pantheonsite.io",        error_pattern: "The gods are wise",                                       additional: "404 Not Found" },
-    VulnService { name: "Tumblr",                 cname_pattern: "tumblr.com",             error_pattern: "There's nothing here",                                    additional: "Tumblr" },
-    VulnService { name: "WordPress",              cname_pattern: "wordpress.com",          error_pattern: "Do you want to register",                                 additional: "WordPress" },
-    VulnService { name: "Acquia",                 cname_pattern: "acquia-sites.com",       error_pattern: "No site found",                                           additional: "The requested URL was not found" },
-    VulnService { name: "Ghost",                  cname_pattern: "ghost.io",               error_pattern: "The thing you were looking for is no longer here",         additional: "Ghost" },
-    VulnService { name: "Cargo",                  cname_pattern: "cargocollective.com",    error_pattern: "404 Not Found",                                           additional: "Cargo" },
-    VulnService { name: "Webflow",                cname_pattern: "webflow.io",             error_pattern: "The page you are looking for doesn't exist",               additional: "Webflow" },
-    VulnService { name: "Surge.sh",               cname_pattern: "surge.sh",               error_pattern: "404 Not Found",                                           additional: "Surge" },
-    VulnService { name: "Squarespace",            cname_pattern: "squarespace.com",        error_pattern: "Website Expired",                                         additional: "Squarespace" },
-    VulnService { name: "Fly.io",                 cname_pattern: "fly.dev",                error_pattern: "404 Not Found",                                           additional: "Fly.io" },
-    VulnService { name: "Brightcove",             cname_pattern: "bcvp0rtal.com",          error_pattern: "Brightcove Error",                                        additional: "Brightcove" },
-    VulnService { name: "Unbounce",               cname_pattern: "unbounce.com",           error_pattern: "The requested URL was not found",                         additional: "Unbounce" },
-    VulnService { name: "Strikingly",             cname_pattern: "strikinglydns.com",      error_pattern: "404 Not Found",                                           additional: "Strikingly" },
-    VulnService { name: "UptimeRobot",            cname_pattern: "stats.uptimerobot.com",  error_pattern: "404 Not Found",                                           additional: "UptimeRobot" },
-    VulnService { name: "UserVoice",              cname_pattern: "uservoice.com",          error_pattern: "This UserVoice is currently being set up",                 additional: "UserVoice" },
-    VulnService { name: "Pingdom",                cname_pattern: "stats.pingdom.com",      error_pattern: "404 Not Found",                                           additional: "Pingdom" },
-    VulnService { name: "Desk",                   cname_pattern: "desk.com",               error_pattern: "Please try again",                                        additional: "Desk" },
-    VulnService { name: "Tilda",                  cname_pattern: "tilda.ws",               error_pattern: "404 Not Found",                                           additional: "Tilda" },
-    VulnService { name: "Helpjuice",              cname_pattern: "helpjuice.com",          error_pattern: "404 Not Found",                                           additional: "Helpjuice" },
-    VulnService { name: "HelpScout",              cname_pattern: "helpscoutdocs.com",      error_pattern: "No settings were found",                                  additional: "HelpScout" },
-    VulnService { name: "Campaign Monitor",       cname_pattern: "createsend.com",         error_pattern: "404 Not Found",                                           additional: "Campaign Monitor" },
-    VulnService { name: "Digital Ocean",           cname_pattern: "digitalocean.app",       error_pattern: "404 Not Found",                                           additional: "Digital Ocean" },
-    VulnService { name: "AWS Elastic Beanstalk",  cname_pattern: "elasticbeanstalk.com",   error_pattern: "404 Not Found",                                           additional: "Elastic Beanstalk" },
-    VulnService { name: "Readthedocs",            cname_pattern: "readthedocs.io",         error_pattern: "Not Found",                                               additional: "readthedocs" },
-    VulnService { name: "Firebase",               cname_pattern: "firebaseapp.com",        error_pattern: "404 Not Found",                                           additional: "Firebase" },
+    VulnService {
+        name: "AWS S3 Bucket",
+        cname_pattern: "s3.amazonaws.com",
+        error_pattern: "NoSuchBucket",
+        additional: "The specified bucket does not exist",
+    },
+    VulnService {
+        name: "AWS CloudFront",
+        cname_pattern: "cloudfront.net",
+        error_pattern: "The request could not be satisfied",
+        additional: "Bad request",
+    },
+    VulnService {
+        name: "GitHub Pages",
+        cname_pattern: "github.io",
+        error_pattern: "There isn't a GitHub Pages site here",
+        additional: "404: Not Found",
+    },
+    VulnService {
+        name: "Heroku",
+        cname_pattern: "herokuapp.com",
+        error_pattern: "No such app",
+        additional: "heroku",
+    },
+    VulnService {
+        name: "Vercel",
+        cname_pattern: "vercel.app",
+        error_pattern: "404: Not Found",
+        additional: "The deployment could not be found",
+    },
+    VulnService {
+        name: "Netlify",
+        cname_pattern: "netlify.app",
+        error_pattern: "Not found",
+        additional: "netlify",
+    },
+    VulnService {
+        name: "Azure App Service",
+        cname_pattern: "azurewebsites.net",
+        error_pattern: "Microsoft Azure App Service",
+        additional: "404 Not Found",
+    },
+    VulnService {
+        name: "Azure TrafficManager",
+        cname_pattern: "trafficmanager.net",
+        error_pattern: "Page not found",
+        additional: "Not found",
+    },
+    VulnService {
+        name: "Zendesk",
+        cname_pattern: "zendesk.com",
+        error_pattern: "Help Center Closed",
+        additional: "Zendesk",
+    },
+    VulnService {
+        name: "Shopify",
+        cname_pattern: "myshopify.com",
+        error_pattern: "Sorry, this shop is currently unavailable",
+        additional: "Shopify",
+    },
+    VulnService {
+        name: "Fastly",
+        cname_pattern: "fastly.net",
+        error_pattern: "Fastly error: unknown domain",
+        additional: "Fastly",
+    },
+    VulnService {
+        name: "Pantheon",
+        cname_pattern: "pantheonsite.io",
+        error_pattern: "The gods are wise",
+        additional: "404 Not Found",
+    },
+    VulnService {
+        name: "Tumblr",
+        cname_pattern: "tumblr.com",
+        error_pattern: "There's nothing here",
+        additional: "Tumblr",
+    },
+    VulnService {
+        name: "WordPress",
+        cname_pattern: "wordpress.com",
+        error_pattern: "Do you want to register",
+        additional: "WordPress",
+    },
+    VulnService {
+        name: "Acquia",
+        cname_pattern: "acquia-sites.com",
+        error_pattern: "No site found",
+        additional: "The requested URL was not found",
+    },
+    VulnService {
+        name: "Ghost",
+        cname_pattern: "ghost.io",
+        error_pattern: "The thing you were looking for is no longer here",
+        additional: "Ghost",
+    },
+    VulnService {
+        name: "Cargo",
+        cname_pattern: "cargocollective.com",
+        error_pattern: "404 Not Found",
+        additional: "Cargo",
+    },
+    VulnService {
+        name: "Webflow",
+        cname_pattern: "webflow.io",
+        error_pattern: "The page you are looking for doesn't exist",
+        additional: "Webflow",
+    },
+    VulnService {
+        name: "Surge.sh",
+        cname_pattern: "surge.sh",
+        error_pattern: "404 Not Found",
+        additional: "Surge",
+    },
+    VulnService {
+        name: "Squarespace",
+        cname_pattern: "squarespace.com",
+        error_pattern: "Website Expired",
+        additional: "Squarespace",
+    },
+    VulnService {
+        name: "Fly.io",
+        cname_pattern: "fly.dev",
+        error_pattern: "404 Not Found",
+        additional: "Fly.io",
+    },
+    VulnService {
+        name: "Brightcove",
+        cname_pattern: "bcvp0rtal.com",
+        error_pattern: "Brightcove Error",
+        additional: "Brightcove",
+    },
+    VulnService {
+        name: "Unbounce",
+        cname_pattern: "unbounce.com",
+        error_pattern: "The requested URL was not found",
+        additional: "Unbounce",
+    },
+    VulnService {
+        name: "Strikingly",
+        cname_pattern: "strikinglydns.com",
+        error_pattern: "404 Not Found",
+        additional: "Strikingly",
+    },
+    VulnService {
+        name: "UptimeRobot",
+        cname_pattern: "stats.uptimerobot.com",
+        error_pattern: "404 Not Found",
+        additional: "UptimeRobot",
+    },
+    VulnService {
+        name: "UserVoice",
+        cname_pattern: "uservoice.com",
+        error_pattern: "This UserVoice is currently being set up",
+        additional: "UserVoice",
+    },
+    VulnService {
+        name: "Pingdom",
+        cname_pattern: "stats.pingdom.com",
+        error_pattern: "404 Not Found",
+        additional: "Pingdom",
+    },
+    VulnService {
+        name: "Desk",
+        cname_pattern: "desk.com",
+        error_pattern: "Please try again",
+        additional: "Desk",
+    },
+    VulnService {
+        name: "Tilda",
+        cname_pattern: "tilda.ws",
+        error_pattern: "404 Not Found",
+        additional: "Tilda",
+    },
+    VulnService {
+        name: "Helpjuice",
+        cname_pattern: "helpjuice.com",
+        error_pattern: "404 Not Found",
+        additional: "Helpjuice",
+    },
+    VulnService {
+        name: "HelpScout",
+        cname_pattern: "helpscoutdocs.com",
+        error_pattern: "No settings were found",
+        additional: "HelpScout",
+    },
+    VulnService {
+        name: "Campaign Monitor",
+        cname_pattern: "createsend.com",
+        error_pattern: "404 Not Found",
+        additional: "Campaign Monitor",
+    },
+    VulnService {
+        name: "Digital Ocean",
+        cname_pattern: "digitalocean.app",
+        error_pattern: "404 Not Found",
+        additional: "Digital Ocean",
+    },
+    VulnService {
+        name: "AWS Elastic Beanstalk",
+        cname_pattern: "elasticbeanstalk.com",
+        error_pattern: "404 Not Found",
+        additional: "Elastic Beanstalk",
+    },
+    VulnService {
+        name: "Readthedocs",
+        cname_pattern: "readthedocs.io",
+        error_pattern: "Not Found",
+        additional: "readthedocs",
+    },
+    VulnService {
+        name: "Firebase",
+        cname_pattern: "firebaseapp.com",
+        error_pattern: "404 Not Found",
+        additional: "Firebase",
+    },
 ];
 
 // ── Data Structures ─────────────────────────────────────────────────────────
@@ -119,12 +299,21 @@ pub async fn check_subdomain_takeover(
 
     // Sort by confidence: High → Medium → Low
     vulnerable.sort_by(|a, b| {
-        let order = |c: &str| -> u8 { match c { "High" => 0, "Medium" => 1, _ => 2 } };
+        let order = |c: &str| -> u8 {
+            match c {
+                "High" => 0,
+                "Medium" => 1,
+                _ => 2,
+            }
+        };
         order(&a.confidence).cmp(&order(&b.confidence))
     });
 
     let high = vulnerable.iter().filter(|v| v.confidence == "High").count();
-    let medium = vulnerable.iter().filter(|v| v.confidence == "Medium").count();
+    let medium = vulnerable
+        .iter()
+        .filter(|v| v.confidence == "Medium")
+        .count();
     let low = vulnerable.iter().filter(|v| v.confidence == "Low").count();
 
     Ok(TakeoverResult {
@@ -193,7 +382,11 @@ async fn check_single_subdomain(client: &Client, subdomain: &str) -> Option<Take
                         break;
                     }
                 }
-                let conf = if service != "Unknown" { "High" } else { "Medium" };
+                let conf = if service != "Unknown" {
+                    "High"
+                } else {
+                    "Medium"
+                };
 
                 return Some(TakeoverVulnerability {
                     subdomain: subdomain.to_string(),
@@ -201,7 +394,10 @@ async fn check_single_subdomain(client: &Client, subdomain: &str) -> Option<Take
                     vulnerability_type: "Dangling CNAME".into(),
                     cname: Some(cname.clone()),
                     confidence: conf.into(),
-                    description: format!("CNAME points to {} which doesn't resolve to an IP.", cname),
+                    description: format!(
+                        "CNAME points to {} which doesn't resolve to an IP.",
+                        cname
+                    ),
                     exploitation_difficulty: assess_difficulty("Dangling CNAME", &service),
                     mitigation: suggest_mitigation("Dangling CNAME", &service),
                     dns_info: dns,
@@ -265,7 +461,8 @@ async fn check_single_subdomain(client: &Client, subdomain: &str) -> Option<Take
                 vulnerability_type: "Missing SPF".into(),
                 cname: None,
                 confidence: "Low".into(),
-                description: "Has MX records but no SPF record — potential email spoofing risk.".into(),
+                description: "Has MX records but no SPF record — potential email spoofing risk."
+                    .into(),
                 exploitation_difficulty: "Medium".into(),
                 mitigation: suggest_mitigation("Missing SPF", "Unknown"),
                 dns_info: dns,
@@ -289,12 +486,20 @@ async fn check_dns(subdomain: &str) -> DnsCheckResult {
         dig_query(subdomain, "NS"),
     );
 
-    let has_valid = !a.is_empty() || !aaaa.is_empty() || !cname.is_empty()
-        || !mx.is_empty() || !txt.is_empty() || !ns.is_empty();
+    let has_valid = !a.is_empty()
+        || !aaaa.is_empty()
+        || !cname.is_empty()
+        || !mx.is_empty()
+        || !txt.is_empty()
+        || !ns.is_empty();
 
     DnsCheckResult {
-        a_records: a, aaaa_records: aaaa, cname_records: cname,
-        mx_records: mx, txt_records: txt, ns_records: ns,
+        a_records: a,
+        aaaa_records: aaaa,
+        cname_records: cname,
+        mx_records: mx,
+        txt_records: txt,
+        ns_records: ns,
         has_valid_dns: has_valid,
     }
 }
@@ -353,12 +558,20 @@ fn assess_difficulty(vuln_type: &str, service: &str) -> String {
         "CNAME Error Pattern" => {
             let easy = ["GitHub Pages", "Heroku", "Vercel", "Netlify", "Surge.sh"];
             let medium = ["AWS S3 Bucket", "Firebase", "Ghost", "WordPress"];
-            if easy.iter().any(|s| *s == service) { "Easy".into() }
-            else if medium.iter().any(|s| *s == service) { "Medium".into() }
-            else { "Hard".into() }
+            if easy.iter().any(|s| *s == service) {
+                "Easy".into()
+            } else if medium.iter().any(|s| *s == service) {
+                "Medium".into()
+            } else {
+                "Hard".into()
+            }
         }
         "Dangling CNAME" => {
-            if service != "Unknown" { "Medium".into() } else { "Hard".into() }
+            if service != "Unknown" {
+                "Medium".into()
+            } else {
+                "Hard".into()
+            }
         }
         "Dangling NS" => "Medium".into(),
         _ => "Hard".into(),
