@@ -19,7 +19,10 @@ confidence-threshold = 0.8
 name = "ring"
 version = "*"
 expression = "MIT AND ISC AND OpenSSL"
-license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+
+[[licenses.clarify.license-files]]
+path = "LICENSE"
+hash = 0xbd0eed23
 
 [bans]
 multiple-versions = "warn"

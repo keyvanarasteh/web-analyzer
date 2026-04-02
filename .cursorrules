@@ -1,0 +1,37 @@
+# Web-Analyzer Coding Rules
+
+## General
+- Rust 2021 edition
+- All library code must pass `cargo clippy --workspace --all-targets -- -D warnings`
+- Never use `unwrap()` in library code — use `?` or explicit error handling
+- Never use `println!` in library code — return values or use tracing
+- All public items need `///` doc comments
+- Feature-gate all vulnerability/analysis modules with `#[cfg(feature = "...")]`
+
+## Naming
+- Files: `snake_case.rs`
+- Structs/Enums: `PascalCase`
+- Functions: `snake_case`
+- Constants: `SCREAMING_SNAKE_CASE`
+
+## Error Handling
+- All operations return `Result<T, WebAnalyzerError>`
+- Network errors → `WebAnalyzerError::Http`
+- DNS failures → `WebAnalyzerError::Dns`
+- Parsing failures → `WebAnalyzerError::Parse`
+- Tools not found → `WebAnalyzerError::ExternalTool`
+
+## API Design
+- The `prelude` module re-exports consumer-facing types only
+- Each module structure adheres to `AnalyzerResult` patterns
+- Avoid leaking internal reqwest/scraper details into high level structs
+
+## Testing
+- `#[tokio::test]` for async tests
+- Include mocked examples when hitting actual domains isn't possible, or separate tests that require network via specific flags.
+- Test both success and error variants
+
+## Documentation
+- Code examples must be compilable
+- Update README.md and AGENTS.md with new features
+
