@@ -190,11 +190,10 @@ pub async fn crawl_contacts(
                 .collect();
             let digits_only: String = digits.replace('+', "");
 
-            if is_valid_phone(&digits_only, &phone_fp_regexes) {
-                if digits.starts_with('+') || digits_only.len() >= 10 {
+            if is_valid_phone(&digits_only, &phone_fp_regexes)
+                && (digits.starts_with('+') || digits_only.len() >= 10) {
                     all_phones.insert(digits);
                 }
-            }
         }
 
         // ── Extract social media ────────────────────────────────────────
@@ -286,16 +285,16 @@ fn build_social_patterns() -> Vec<(String, Regex)> {
     vec![
         (
             "Facebook".into(),
-            Regex::new(r"(?i)facebook\.com/(?!sharer|dialog|plugins)([a-zA-Z0-9._-]+)").unwrap(),
+            Regex::new(r"(?i)facebook\.com/([a-zA-Z0-9._-]+)").unwrap(),
         ),
         (
             "Twitter".into(),
-            Regex::new(r"(?i)(?:twitter\.com|x\.com)/(?!share|intent|home)([a-zA-Z0-9._-]+)")
+            Regex::new(r"(?i)(?:twitter\.com|x\.com)/([a-zA-Z0-9._-]+)")
                 .unwrap(),
         ),
         (
             "Instagram".into(),
-            Regex::new(r"(?i)instagram\.com/(?!p/|explore|accounts)([a-zA-Z0-9._-]+)").unwrap(),
+            Regex::new(r"(?i)instagram\.com/([a-zA-Z0-9._-]+)").unwrap(),
         ),
         (
             "LinkedIn".into(),
@@ -397,16 +396,4 @@ fn resolve_url(base: &str, href: &str) -> Option<String> {
         base
     };
     Some(format!("{}{}", base_trimmed, href.trim_start_matches('/')))
-}
-
-impl qicro_data_core::registry::Registrable for SocialProfile {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SocialProfile", "socialprofile")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for ContactSpyResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("ContactSpyResult", "contactspyresult")
-    }
 }

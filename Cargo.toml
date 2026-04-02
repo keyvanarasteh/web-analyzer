@@ -2,25 +2,21 @@
 name = "web-analyzer"
 version = "0.1.0"
 edition = "2021"
-description = "WebAnalyzer Rust Port - Domain Security & Intelligence Platform"
-
-[dependencies]
-qicro-data-core = { path = "../data-core", features = ["proto-support", "mcp-support", "ws-support", "graphql-support"] }
-chrono = "0.4.44"
-regex = "1.12.3"
-reqwest = { version = "0.13.2", features = ["json", "blocking", "rustls"] }
-scraper = "0.26.0"
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
-tokio = { version = "1.50.0", features = ["full"] }
-urlencoding = "2.1"
-anyhow = "1.0.102"
-async-trait = "0.1.89"
-tokio-tungstenite = "0.26.1"
-tracing = "0.1.44"
+description = "Enterprise domain security & intelligence platform — WHOIS, DNS, SEO, tech detection, subdomain takeover, API security scanning, and more"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/keyvanarasteh/web-analyzer"
+homepage = "https://github.com/keyvanarasteh/web-analyzer"
+documentation = "https://docs.rs/web-analyzer"
+keywords = ["security", "dns", "whois", "web-security", "penetration-testing"]
+categories = ["web-programming", "network-programming"]
 
 [features]
-default = []
+default = [
+    "domain-info", "domain-dns", "seo-analysis", "web-technologies", "domain-validator",
+    "subdomain-discovery", "contact-spy", "advanced-content-scanner",
+    "security-analysis", "subdomain-takeover", "cloudflare-bypass",
+    "nmap-zero-day", "api-security-scanner", "geo-analysis",
+]
 
 # Intelligence Gathering
 domain-info = []
@@ -41,3 +37,25 @@ cloudflare-bypass = []
 nmap-zero-day = []
 api-security-scanner = []
 geo-analysis = []
+
+[dependencies]
+chrono = "0.4"
+regex = "1.12"
+reqwest = { version = "0.13", features = ["json", "rustls"] }
+scraper = "0.26"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+tokio = { version = "1.50", features = ["full"] }
+tracing = "0.1"
+urlencoding = "2.1"
+
+[dev-dependencies]
+tokio = { version = "1.50", features = ["full", "macros", "rt-multi-thread"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

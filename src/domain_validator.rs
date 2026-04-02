@@ -405,17 +405,14 @@ async fn validate_http(client: &Client, domain: &str) -> Result<HttpValidation, 
     let start = Instant::now();
 
     // HTTPS first (more common)
-    match client.head(format!("https://{}", domain)).send().await {
-        Ok(resp) => {
-            info.https_reachable = true;
-            info.https_status = Some(resp.status().as_u16());
-            info.response_time_ms = start.elapsed().as_millis();
+    if let Ok(resp) = client.head(format!("https://{}", domain)).send().await {
+        info.https_reachable = true;
+        info.https_status = Some(resp.status().as_u16());
+        info.response_time_ms = start.elapsed().as_millis();
 
-            if resp.status().as_u16() < 500 {
-                return Ok(info);
-            }
+        if resp.status().as_u16() < 500 {
+            return Ok(info);
         }
-        Err(_) => {}
     }
 
     // HTTP fallback
@@ -427,28 +424,24 @@ async fn validate_http(client: &Client, domain: &str) -> Result<HttpValidation, 
         .build()
         .unwrap_or_else(|_| Client::new());
 
-    match no_redirect_client
+    if let Ok(resp) = no_redirect_client
         .head(format!("http://{}", domain))
         .send()
-        .await
-    {
-        Ok(resp) => {
-            info.http_reachable = true;
-            info.http_status = Some(resp.status().as_u16());
+        .await {
+        info.http_reachable = true;
+        info.http_status = Some(resp.status().as_u16());
 
-            // Check for HTTPS redirect
-            let status = resp.status().as_u16();
-            if [301, 302, 307, 308].contains(&status) {
-                if let Some(location) = resp.headers().get("location") {
-                    if let Ok(loc) = location.to_str() {
-                        if loc.starts_with("https://") {
-                            info.redirects_to_https = true;
-                        }
+        // Check for HTTPS redirect
+        let status = resp.status().as_u16();
+        if [301, 302, 307, 308].contains(&status) {
+            if let Some(location) = resp.headers().get("location") {
+                if let Ok(loc) = location.to_str() {
+                    if loc.starts_with("https://") {
+                        info.redirects_to_https = true;
                     }
                 }
             }
         }
-        Err(_) => {}
     }
 
     if info.response_time_ms == 0 {
@@ -511,42 +504,6 @@ async fn validate_ssl(domain: &str) -> Result<SslValidation, String> {
             cipher_suite: "Unknown".into(),
         })
     } else {
-        Err(format!("SSL connection failed"))
-    }
-}
-
-impl qicro_data_core::registry::Registrable for ValidationResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("ValidationResult", "validationresult")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for DnsValidation {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("DnsValidation", "dnsvalidation")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for HttpValidation {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("HttpValidation", "httpvalidation")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for SslValidation {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SslValidation", "sslvalidation")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for ValidationStats {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("ValidationStats", "validationstats")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for BulkValidationResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("BulkValidationResult", "bulkvalidationresult")
+        Err("SSL connection failed".to_string())
     }
 }

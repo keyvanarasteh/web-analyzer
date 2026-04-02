@@ -85,15 +85,3 @@ pub async fn get_dns_records(
         response_time_ms: duration,
     })
 }
-
-impl qicro_data_core::registry::Registrable for DnsRecords {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("DnsRecords", "dnsrecords")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for DomainDnsResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("DomainDnsResult", "domaindnsresult")
-    }
-}

@@ -9,7 +9,7 @@ async fn test_subdomain_takeover() {
 
     let info = result.unwrap();
     assert_eq!(info.domain, "example.com");
-    assert_eq!(info.subdomains_checked, 0);
+    assert_eq!(info.statistics.subdomains_scanned, 0);
     assert!(info.vulnerable.is_empty());
 
     println!("subdomain_takeover smoke test passed");

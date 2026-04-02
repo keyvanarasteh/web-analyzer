@@ -569,14 +569,16 @@ pub async fn scan_content(
                 let mut agent_match = false;
                 for line in body.lines() {
                     let line = line.trim().to_lowercase();
-                    if line.starts_with("user-agent:") {
-                        let agent = line[11..].trim();
+                    if let Some(agent) = line.strip_prefix("user-agent:") {
+                        let agent = agent.trim();
                         agent_match = agent == "*";
                     }
-                    if agent_match && line.starts_with("disallow:") {
-                        let path = line[9..].trim();
-                        if !path.is_empty() {
-                            disallowed.push(path.to_string());
+                    if agent_match {
+                        if let Some(path) = line.strip_prefix("disallow:") {
+                            let path = path.trim();
+                            if !path.is_empty() {
+                                disallowed.push(path.to_string());
+                            }
                         }
                     }
                 }
@@ -743,13 +745,12 @@ pub async fn scan_content(
                     });
                 }
             }
-        } else if content_type.contains("javascript") || url.ends_with(".js") {
-            if !is_known_library(&url) {
+        } else if (content_type.contains("javascript") || url.ends_with(".js"))
+            && !is_known_library(&url) {
                 js_file_urls.insert(url.clone());
                 scan_js_security(&body, &url, &js_vuln_regexes, &mut js_vulns);
                 scan_for_secrets(&body, &url, &secret_regexes, &mut secrets);
             }
-        }
     }
 
     // ── Fetch & analyze external JS files ────────────────────────────────
@@ -1005,34 +1006,4 @@ fn is_same_domain(base: &str, url: &str) -> bool {
             .to_lowercase()
     };
     extract_host(base) == extract_host(url)
-}
-
-impl qicro_data_core::registry::Registrable for SecretFinding {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SecretFinding", "secretfinding")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for JsVulnerability {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("JsVulnerability", "jsvulnerability")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for SsrfFinding {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SsrfFinding", "ssrffinding")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for ScanSummary {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("ScanSummary", "scansummary")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for ScannerResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("ScannerResult", "scannerresult")
-    }
 }

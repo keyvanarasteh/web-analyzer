@@ -250,7 +250,7 @@ async fn reverse_dns_lookup(ip: &str) -> Option<String> {
 // ── WHOIS via TCP socket ────────────────────────────────────────────────────
 
 fn get_whois_server(domain: &str) -> &'static str {
-    let tld = domain.split('.').last().unwrap_or("");
+    let tld = domain.split('.').next_back().unwrap_or("");
     WHOIS_SERVERS
         .iter()
         .find(|(t, _)| *t == tld)
@@ -395,7 +395,6 @@ async fn query_whois(domain: &str) -> WhoisInfo {
             .filter_map(|c| {
                 c.get(1).map(|m| {
                     m.as_str()
-                        .trim()
                         .split_whitespace()
                         .next()
                         .unwrap_or("")
@@ -724,34 +723,4 @@ fn calculate_security_score(ssl: &SslInfo, dns: &DnsInfo, security: &SecurityInf
     }
 
     score
-}
-
-impl qicro_data_core::registry::Registrable for DomainInfoResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("DomainInfoResult", "domaininforesult")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for WhoisInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("WhoisInfo", "whoisinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for SslInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SslInfo", "sslinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for DnsInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("DnsInfo", "dnsinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for SecurityInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SecurityInfo", "securityinfo")
-    }
 }

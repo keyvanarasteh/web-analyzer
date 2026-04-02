@@ -4,15 +4,15 @@
     <strong>Enterprise Domain Security & Intelligence Platform</strong>
   </p>
   <p align="center">
-    High-performance Rust rewrite of <a href="https://github.com/frkndncr/WebAnalyzer">WebAnalyzer</a>
+    High-performance Rust toolkit for web reconnaissance, security assessment, and technology fingerprinting
   </p>
 </p>
 
 <p align="center">
-  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-2021-orange?style=for-the-badge&logo=rust&logoColor=white" alt="Rust 2021"></a>
-  <a href="#"><img src="https://img.shields.io/badge/Modules-15-blue?style=for-the-badge&logo=stackblitz&logoColor=white" alt="15 Modules"></a>
-  <a href="#"><img src="https://img.shields.io/badge/Lines-6,725-green?style=for-the-badge&logo=codacy&logoColor=white" alt="6,725 Lines"></a>
-  <a href="https://github.com/keyvanarasteh/web-analyzer/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="License MIT"></a>
+  <a href="https://crates.io/crates/web-analyzer"><img src="https://img.shields.io/crates/v/web-analyzer?style=for-the-badge&logo=rust&logoColor=white&color=orange" alt="crates.io"></a>
+  <a href="https://docs.rs/web-analyzer"><img src="https://img.shields.io/docsrs/web-analyzer?style=for-the-badge&logo=docs.rs&logoColor=white" alt="docs.rs"></a>
+  <a href="https://github.com/keyvanarasteh/web-analyzer/actions"><img src="https://img.shields.io/github/actions/workflow/status/keyvanarasteh/web-analyzer/ci.yml?style=for-the-badge&logo=github&label=CI" alt="CI"></a>
+  <a href="https://github.com/keyvanarasteh/web-analyzer/blob/main/LICENSE-MIT"><img src="https://img.shields.io/crates/l/web-analyzer?style=for-the-badge" alt="License"></a>
 </p>
 
 <p align="center">
@@ -24,6 +24,35 @@
 </p>
 
 ---
+
+## 🚀 Quick Start
+
+```bash
+cargo add web-analyzer
+```
+
+Or add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+web-analyzer = "0.1"
+tokio = { version = "1", features = ["full"] }
+```
+
+```rust
+use web_analyzer::domain_info::get_domain_info;
+
+#[tokio::main]
+async fn main() {
+    let info = get_domain_info("example.com").await.unwrap();
+    println!("IP: {:?}, Score: {}/100", info.ipv4, info.security_score);
+}
+```
+
+> **Selective features**: `cargo add web-analyzer --no-default-features --features domain-info,security-analysis`
+
+---
+
 
 ## ✨ Features
 

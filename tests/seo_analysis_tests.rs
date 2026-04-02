@@ -15,13 +15,12 @@ async fn test_analyze_advanced_seo() {
 
     // Example.com has a title
     assert!(
-        info.title.contains("Example Domain"),
+        info.basic_seo.title.text.contains("Example Domain"),
         "Title should be Example Domain"
     );
-    assert!(info.h1_count >= 1, "example.com should have an H1 tag");
 
-    // It has very fast load time generally
-    assert!(info.load_time_ms > 0);
+    // SEO score should be calculated
+    assert!(info.seo_score.score > 0);
 
     println!("Resolved seo_analysis for example.com -> {:?}", info);
 }

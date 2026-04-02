@@ -558,9 +558,9 @@ fn assess_difficulty(vuln_type: &str, service: &str) -> String {
         "CNAME Error Pattern" => {
             let easy = ["GitHub Pages", "Heroku", "Vercel", "Netlify", "Surge.sh"];
             let medium = ["AWS S3 Bucket", "Firebase", "Ghost", "WordPress"];
-            if easy.iter().any(|s| *s == service) {
+            if easy.contains(&service) {
                 "Easy".into()
-            } else if medium.iter().any(|s| *s == service) {
+            } else if medium.contains(&service) {
                 "Medium".into()
             } else {
                 "Hard".into()
@@ -588,29 +588,5 @@ fn suggest_mitigation(vuln_type: &str, service: &str) -> String {
         "Third-Party Service Error" => "Verify the resource exists on the target service. If no longer used, remove the DNS record.".into(),
         "Missing SPF" => "Add an SPF record to protect against email spoofing. Example: 'v=spf1 mx -all'".into(),
         _ => "Review DNS configuration and remove references to services or resources no longer in use.".into(),
-    }
-}
-
-impl qicro_data_core::registry::Registrable for DnsCheckResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("DnsCheckResult", "dnscheckresult")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for TakeoverVulnerability {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("TakeoverVulnerability", "takeovervulnerability")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for ScanStatistics {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("ScanStatistics", "scanstatistics")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for TakeoverResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("TakeoverResult", "takeoverresult")
     }
 }

@@ -1,38 +1,46 @@
-use qicro_data_core::error::ErrorMeta;
+//! Error types for the web-analyzer crate.
 
-pub fn web_analyzer_errors() -> Vec<ErrorMeta> {
-    vec![
-        ErrorMeta::new(500, "WEB_ANALYZER_INTERNAL_ERROR")
-            .description("An internal error occurred in web-analyzer")
-            .http_status(500)
-            .source("qicro-web-analyzer"),
-        ErrorMeta::new(400, "WEB_ANALYZER_INVALID_INPUT")
-            .description("Invalid input provided to web-analyzer")
-            .http_status(400)
-            .source("qicro-web-analyzer"),
-        ErrorMeta::new(404, "WEB_ANALYZER_DOMAIN_NOT_FOUND")
-            .description("The specified domain could not be resolved")
-            .http_status(404)
-            .source("qicro-web-analyzer"),
-        ErrorMeta::new(504, "WEB_ANALYZER_TIMEOUT")
-            .description("Analysis operation timed out")
-            .http_status(504)
-            .source("qicro-web-analyzer"),
-        ErrorMeta::new(501, "WEB_ANALYZER_FEATURE_DISABLED")
-            .description("The requested analysis feature is not enabled")
-            .http_status(501)
-            .source("qicro-web-analyzer"),
-        ErrorMeta::new(502, "WEB_ANALYZER_DNS_FAILURE")
-            .description("DNS resolution failed for the target domain")
-            .http_status(502)
-            .source("qicro-web-analyzer"),
-        ErrorMeta::new(500, "WEB_ANALYZER_SCAN_FAILED")
-            .description("Security scan or content analysis failed unexpectedly")
-            .http_status(500)
-            .source("qicro-web-analyzer"),
-        ErrorMeta::new(429, "WEB_ANALYZER_RATE_LIMITED")
-            .description("Too many analysis requests — rate limit exceeded")
-            .http_status(429)
-            .source("qicro-web-analyzer"),
-    ]
+/// Errors that can occur during web analysis operations.
+#[derive(Debug, thiserror::Error)]
+pub enum WebAnalyzerError {
+    /// An HTTP request failed.
+    #[error("HTTP request failed: {0}")]
+    Http(#[from] reqwest::Error),
+
+    /// DNS resolution failed for a target domain.
+    #[error("DNS resolution failed for {domain}: {detail}")]
+    Dns {
+        /// The domain that failed to resolve.
+        domain: String,
+        /// Details about the failure.
+        detail: String,
+    },
+
+    /// An external tool (dig, nmap, subfinder, etc.) was not found or failed.
+    #[error("External tool '{tool}' failed: {detail}")]
+    ExternalTool {
+        /// Name of the tool (e.g. "dig", "nmap", "subfinder").
+        tool: String,
+        /// Details about the failure.
+        detail: String,
+    },
+
+    /// An operation timed out.
+    #[error("Timeout: {0}")]
+    Timeout(String),
+
+    /// A parsing error occurred while processing output.
+    #[error("Parse error: {0}")]
+    Parse(String),
+
+    /// JSON serialization/deserialization error.
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
+
+    /// A generic error for uncategorized failures.
+    #[error("{0}")]
+    Other(String),
 }
+
+/// Convenience alias for `Result<T, WebAnalyzerError>`.
+pub type Result<T> = std::result::Result<T, WebAnalyzerError>;

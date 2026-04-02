@@ -378,10 +378,11 @@ pub async fn detect_web_technologies(
 fn detect_server(server: &str, powered_by: &str) -> String {
     let s_lower = server.to_lowercase();
     let p_lower = powered_by.to_lowercase();
+    let version_re = Regex::new(r"[\d\.]+").ok();
     for &(key, name) in WEB_SERVERS {
         if s_lower.contains(key) || p_lower.contains(key) {
-            let version = Regex::new(r"[\d\.]+")
-                .ok()
+            let version = version_re
+                .as_ref()
                 .and_then(|r| r.find(&s_lower).map(|m| format!(" {}", m.as_str())))
                 .unwrap_or_default();
             return format!("{}{}", name, version);
@@ -856,14 +857,12 @@ fn extract_wp_version(html: &str, doc: &Html) -> String {
 }
 
 fn extract_wp_theme(doc: &Html) -> String {
+    let theme_re = Regex::new(r"/wp-content/themes/([^/]+)").ok();
     if let Ok(sel) = Selector::parse("link[rel=\"stylesheet\"]") {
         for el in doc.select(&sel) {
             if let Some(href) = el.value().attr("href") {
                 if href.contains("wp-content/themes/") {
-                    if let Some(m) = Regex::new(r"/wp-content/themes/([^/]+)")
-                        .ok()
-                        .and_then(|r| r.captures(href))
-                    {
+                    if let Some(m) = theme_re.as_ref().and_then(|r| r.captures(href)) {
                         return m.get(1).unwrap().as_str().to_string();
                     }
                 }
@@ -875,6 +874,7 @@ fn extract_wp_theme(doc: &Html) -> String {
 
 fn extract_wp_plugins(html: &str, doc: &Html) -> Vec<String> {
     let mut plugins = std::collections::HashSet::new();
+    let plugin_re = Regex::new(r"/wp-content/plugins/([^/]+)").ok();
 
     // From script/link srcs
     let selectors = ["script[src]", "link[rel=\"stylesheet\"]"];
@@ -887,10 +887,7 @@ fn extract_wp_plugins(html: &str, doc: &Html) -> Vec<String> {
                     .or_else(|| el.value().attr("href"))
                     .unwrap_or("");
                 if attr.contains("wp-content/plugins/") {
-                    if let Some(m) = Regex::new(r"/wp-content/plugins/([^/]+)")
-                        .ok()
-                        .and_then(|r| r.captures(attr))
-                    {
+                    if let Some(m) = plugin_re.as_ref().and_then(|r| r.captures(attr)) {
                         plugins.insert(m.get(1).unwrap().as_str().to_string());
                     }
                 }
@@ -1075,58 +1072,4 @@ fn collect_stylesheet_hrefs(doc: &Html) -> String {
         .collect::<Vec<_>>()
         .join(" ")
         .to_lowercase()
-}
-
-impl qicro_data_core::registry::Registrable for WebTechResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("WebTechResult", "webtechresult")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for SecurityHeaderInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SecurityHeaderInfo", "securityheaderinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for VulnerabilityInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("VulnerabilityInfo", "vulnerabilityinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for DisclosureInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("DisclosureInfo", "disclosureinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for SecurityServicesInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SecurityServicesInfo", "securityservicesinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for CookieSecurityInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("CookieSecurityInfo", "cookiesecurityinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for WordPressAnalysis {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("WordPressAnalysis", "wordpressanalysis")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for WpUser {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("WpUser", "wpuser")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for SecurityScoreResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SecurityScoreResult", "securityscoreresult")
-    }
 }

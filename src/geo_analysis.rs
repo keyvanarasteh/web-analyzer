@@ -146,11 +146,10 @@ pub async fn analyze_geo(
                             } else if directives.get(agent).map(|s| s.as_str()) == Some("Unknown") {
                                 directives.insert(agent.clone(), "Partially Blocked".into());
                             }
-                        } else if lower.starts_with("allow:") {
-                            if directives.get(agent).map(|s| s.as_str()) == Some("Unknown") {
+                        } else if lower.starts_with("allow:")
+                            && directives.get(agent).map(|s| s.as_str()) == Some("Unknown") {
                                 directives.insert(agent.clone(), "Allowed".into());
                             }
-                        }
                     }
                 }
                 // Mark remaining unknowns as implicit allow
@@ -223,28 +222,4 @@ pub async fn analyze_geo(
         geo_score: score,
         geo_grade: grade,
     })
-}
-
-impl qicro_data_core::registry::Registrable for GeoAnalysisResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("GeoAnalysisResult", "geoanalysisresult")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for LlmsTxtResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("LlmsTxtResult", "llmstxtresult")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for WebMcpResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("WebMcpResult", "webmcpresult")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for AiCrawlerResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("AiCrawlerResult", "aicrawlerresult")
-    }
 }

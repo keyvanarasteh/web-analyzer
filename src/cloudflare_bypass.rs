@@ -222,8 +222,8 @@ pub async fn find_real_ip(
         let status = verify_ip(&results[i].ip).await;
         results[i].status = Some(status);
     }
-    for i in 5..results.len() {
-        results[i].status = Some("unverified".into());
+    for item in results.iter_mut().skip(5) {
+        item.status = Some("unverified".into());
     }
 
     Ok(CloudflareBypassResult {
@@ -298,20 +298,5 @@ async fn verify_ip(ip: &str) -> String {
     {
         Ok(Ok(_)) => "active".into(),
         _ => "inactive".into(),
-    }
-}
-
-impl qicro_data_core::registry::Registrable for FoundIp {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("FoundIp", "foundip")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for CloudflareBypassResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new(
-            "CloudflareBypassResult",
-            "cloudflarebypassresult",
-        )
     }
 }

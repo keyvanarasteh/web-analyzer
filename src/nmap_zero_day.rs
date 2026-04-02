@@ -298,33 +298,3 @@ fn calculate_severity(cve: &Value) -> SeverityInfo {
         score: base_score,
     }
 }
-
-impl qicro_data_core::registry::Registrable for PortInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("PortInfo", "portinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for VulnerabilityInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("VulnerabilityInfo", "vulnerabilityinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for SeverityInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("SeverityInfo", "severityinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for DnsInfo {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("DnsInfo", "dnsinfo")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for NmapScanResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("NmapScanResult", "nmapscanresult")
-    }
-}

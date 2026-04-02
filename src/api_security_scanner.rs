@@ -432,9 +432,7 @@ async fn verify_endpoint(client: &Client, url: &str) -> Option<ApiEndpoint> {
 
         let total_score = structure_score + api_header_score + framework_score;
 
-        if total_score >= 4 {
-            votes.push(("REST API".to_string(), status));
-        } else if total_score >= 2 && status == 200 {
+        if total_score >= 4 || (total_score >= 2 && status == 200) {
             votes.push(("REST API".to_string(), status));
         }
     }
@@ -874,9 +872,9 @@ fn is_payload_safe_context(content: &str, payload: &str) -> bool {
     // Inside HTML comment?
     let before = &content[..pos];
     let after = &content[pos..];
-    if before.rfind("<!--").is_some() && after.find("-->").is_some() {
+    if before.rfind("<!--").is_some() && after.contains("-->") {
         let comment_start = before.rfind("<!--").unwrap();
-        if before[comment_start..].find("-->").is_none() {
+        if !before[comment_start..].contains("-->") {
             return true;
         }
     }
@@ -996,7 +994,7 @@ async fn test_auth_bypass(client: &Client, endpoint: &str) -> Vec<VulnerabilityF
     for (name, value) in bypass_headers.iter().take(10) {
         let resp = match client
             .get(endpoint)
-            .header(name.as_ref() as &str, value.as_ref() as &str)
+            .header(name as &str, value as &str)
             .send()
             .await
         {
@@ -1203,22 +1201,4 @@ fn resolve_url(base: &str, href: &str) -> Option<String> {
         base
     };
     Some(format!("{}{}", base_trimmed, href.trim_start_matches('/')))
-}
-
-impl qicro_data_core::registry::Registrable for ApiEndpoint {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("ApiEndpoint", "apiendpoint")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for VulnerabilityFinding {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("VulnerabilityFinding", "vulnerabilityfinding")
-    }
-}
-
-impl qicro_data_core::registry::Registrable for ApiScanResult {
-    fn model_meta() -> qicro_data_core::registry::ModelMeta {
-        qicro_data_core::registry::ModelMeta::new("ApiScanResult", "apiscanresult")
-    }
 }
