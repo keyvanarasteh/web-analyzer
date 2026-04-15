@@ -35,9 +35,16 @@ const COMMON_TLDS: &[&str] = &[
 // ── Data Structures ─────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubdomainDetail {
+    pub host: String,
+    pub status: Option<u16>,
+    pub resolution_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubdomainDiscoveryResult {
     pub domain: String,
-    pub subdomains: Vec<String>,
+    pub subdomains: Vec<SubdomainDetail>,
     pub total_found: usize,
     pub filtered_count: usize,
     pub response_time_ms: u128,
@@ -106,15 +113,86 @@ pub async fn discover_subdomains(
         }).await;
     }
 
-    let subdomains: Vec<String> = raw.into_iter().filter(|s| !should_skip(s)).collect();
-    let filtered_count = total_found - subdomains.len();
+    let raw_subdomains: Vec<String> = raw.into_iter().filter(|s| !should_skip(s)).collect();
+    let filtered_count = total_found - raw_subdomains.len();
+    
+    if let Some(tx) = &progress_tx {
+        let _ = tx.send(crate::ScanProgress {
+            module: "Subdomain".to_string(),
+            percentage: 92.0,
+            message: format!("Resolving HTTP status for {} unique subdomains...", raw_subdomains.len()),
+            status: "ongoing".to_string()
+        }).await;
+    }
+
+    use tokio::task::JoinSet;
+    use tokio::sync::Semaphore;
+    use std::sync::Arc;
+
+    let mut set = JoinSet::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .danger_accept_invalid_certs(true)
+        .redirect(reqwest::redirect::Policy::limited(3))
+        .build()
+        .unwrap_or_default();
+        
+    let semaphore = Arc::new(Semaphore::new(100));
+
+    for host in raw_subdomains.clone() {
+        let client_c = client.clone();
+        let sem_c = semaphore.clone();
+        set.spawn(async move {
+            let _permit = sem_c.acquire().await;
+            let url = format!("http://{}", host);
+            match client_c.get(&url).send().await {
+                Ok(r) => {
+                    SubdomainDetail {
+                        host,
+                        status: Some(r.status().as_u16()),
+                        resolution_error: None,
+                    }
+                },
+                Err(e) => {
+                    SubdomainDetail {
+                        host,
+                        status: None,
+                        resolution_error: Some(e.to_string()),
+                    }
+                }
+            }
+        });
+    }
+
+    let mut subdomains = Vec::new();
+    let total_to_resolve = raw_subdomains.len();
+    let mut resolved = 0;
+
+    while let Some(res) = set.join_next().await {
+        if let Ok(detail) = res {
+            subdomains.push(detail);
+            resolved += 1;
+            
+            if resolved % 25 == 0 {
+                if let Some(tx) = &progress_tx {
+                    let _ = tx.send(crate::ScanProgress {
+                        module: "Subdomain".to_string(),
+                        percentage: 92.0 + (7.0 * (resolved as f32 / total_to_resolve as f32).max(0.01)),
+                        message: format!("Resolved HTTP status for {}/{} subdomains...", resolved, total_to_resolve),
+                        status: "ongoing".to_string()
+                    }).await;
+                }
+            }
+        }
+    }
+
     let duration = start_time.elapsed().as_millis();
 
     if let Some(tx) = &progress_tx {
         let _ = tx.send(crate::ScanProgress {
             module: "Subdomain".to_string(),
             percentage: 100.0,
-            message: "Subdomain footprint mapping completed successfully.".to_string(),
+            message: "Subdomain footprint mapping and HTTP verification completed.".to_string(),
             status: "completed".to_string()
         }).await;
     }
