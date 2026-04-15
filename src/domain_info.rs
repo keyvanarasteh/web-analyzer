@@ -270,7 +270,7 @@ fn clean_domain(domain: &str) -> String {
 
 // ── Reverse DNS ─────────────────────────────────────────────────────────────
 
-async fn reverse_dns_lookup(ip: &str) -> Option<String> {
+pub async fn reverse_dns_lookup(ip: &str) -> Option<String> {
     let output = tokio::process::Command::new("dig")
         .args(["+short", "-x", ip])
         .output()
@@ -313,7 +313,7 @@ async fn query_whois_tcp(domain: &str, server: &str) -> Option<String> {
     Some(String::from_utf8_lossy(&buf).to_string())
 }
 
-async fn query_whois(domain: &str) -> WhoisInfo {
+pub async fn query_whois(domain: &str) -> WhoisInfo {
     let mut info = WhoisInfo {
         registrar: "Unknown".into(),
         creation_date: "Unknown".into(),
@@ -491,7 +491,7 @@ async fn query_whois(domain: &str) -> WhoisInfo {
 
 // ── SSL Certificate ─────────────────────────────────────────────────────────
 
-async fn check_ssl(domain: &str) -> SslInfo {
+pub async fn check_ssl(domain: &str) -> SslInfo {
     // Use openssl s_client to get certificate info
     let output = match tokio::process::Command::new("openssl")
         .args([
@@ -624,7 +624,7 @@ async fn dig_query(domain: &str, rtype: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
-async fn get_dns_records(domain: &str) -> DnsInfo {
+pub async fn get_dns_records(domain: &str) -> DnsInfo {
     let (ns, mx, txt) = tokio::join!(
         dig_query(domain, "NS"),
         dig_query(domain, "MX"),
@@ -646,7 +646,7 @@ async fn get_dns_records(domain: &str) -> DnsInfo {
 
 // ── Port Scanning ───────────────────────────────────────────────────────────
 
-async fn scan_ports(ip: Option<&str>) -> Vec<String> {
+pub async fn scan_ports(ip: Option<&str>) -> Vec<String> {
     let ip = match ip {
         Some(ip) => ip,
         None => return vec![],
@@ -677,7 +677,7 @@ async fn scan_ports(ip: Option<&str>) -> Vec<String> {
 
 // ── HTTP Status Check ───────────────────────────────────────────────────────
 
-async fn check_http_status(
+pub async fn check_http_status(
     client: &Client,
     domain: &str,
 ) -> (Option<String>, Option<String>, Option<f64>) {
@@ -707,7 +707,7 @@ async fn check_http_status(
 
 // ── Security Check ──────────────────────────────────────────────────────────
 
-async fn check_security(client: &Client, domain: &str) -> SecurityInfo {
+pub async fn check_security(client: &Client, domain: &str) -> SecurityInfo {
     let mut sec = SecurityInfo {
         https_available: false,
         https_redirect: false,
@@ -742,7 +742,7 @@ async fn check_security(client: &Client, domain: &str) -> SecurityInfo {
 
 // ── Security Score (0-100) ──────────────────────────────────────────────────
 
-fn calculate_security_score(ssl: &SslInfo, dns: &DnsInfo, security: &SecurityInfo) -> u32 {
+pub fn calculate_security_score(ssl: &SslInfo, dns: &DnsInfo, security: &SecurityInfo) -> u32 {
     let mut score: u32 = 0;
 
     // HTTPS available (+30)
