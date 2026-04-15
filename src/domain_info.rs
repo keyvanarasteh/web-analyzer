@@ -9,31 +9,120 @@ use tokio::net::TcpStream;
 // ── WHOIS server database ───────────────────────────────────────────────────
 
 const WHOIS_SERVERS: &[(&str, &str)] = &[
+    // Core gTLDs
     ("com", "whois.verisign-grs.com"),
     ("net", "whois.verisign-grs.com"),
     ("org", "whois.pir.org"),
+    ("edu", "whois.educause.edu"),
+    ("gov", "whois.dotgov.gov"),
+    ("mil", "whois.nic.mil"),
+    ("int", "whois.iana.org"),
     ("info", "whois.afilias.net"),
     ("biz", "whois.biz"),
-    ("us", "whois.nic.us"),
-    ("uk", "whois.nic.uk"),
-    ("de", "whois.denic.de"),
-    ("fr", "whois.nic.fr"),
-    ("it", "whois.nic.it"),
-    ("nl", "whois.domain-registry.nl"),
-    ("eu", "whois.eu"),
-    ("ru", "whois.tcinet.ru"),
-    ("cn", "whois.cnnic.cn"),
-    ("jp", "whois.jprs.jp"),
-    ("br", "whois.registro.br"),
-    ("au", "whois.auda.org.au"),
-    ("ca", "whois.cira.ca"),
-    ("in", "whois.registry.in"),
-    ("tr", "whois.nic.tr"),
-    ("co", "whois.nic.co"),
+    ("name", "whois.nic.name"),
+    ("pro", "whois.nic.pro"),
+    ("aero", "whois.aero"),
+    ("coop", "whois.nic.coop"),
+    ("museum", "whois.museum"),
+    ("arpa", "whois.iana.org"),
+    
+    // New Highly Active gTLDs
+    ("xyz", "whois.nic.xyz"),
+    ("top", "whois.nic.top"),
+    ("club", "whois.nic.club"),
+    ("vip", "whois.nic.vip"),
+    ("app", "whois.nic.google"),
+    ("dev", "whois.nic.google"),
+    ("shop", "whois.nic.shop"),
+    ("store", "whois.nic.store"),
+    ("site", "whois.nic.site"),
+    ("online", "whois.nic.online"),
+    ("tech", "whois.nic.tech"),
+    ("ai", "whois.nic.ai"),
     ("io", "whois.nic.io"),
     ("me", "whois.nic.me"),
     ("tv", "whois.nic.tv"),
     ("cc", "whois.nic.cc"),
+    ("website", "whois.nic.website"),
+    ("space", "whois.nic.space"),
+    ("press", "whois.nic.press"),
+    ("design", "whois.nic.design"),
+    ("agency", "whois.nic.agency"),
+    ("photography", "whois.nic.photography"),
+    ("email", "whois.nic.email"),
+    ("network", "whois.nic.network"),
+    ("today", "whois.nic.today"),
+    ("icu", "whois.nic.icu"),
+    ("wang", "whois.nic.wang"),
+    ("win", "whois.nic.win"),
+    ("mobi", "whois.nic.mobi"),
+    ("asia", "whois.nic.asia"),
+    ("tel", "whois.nic.tel"),
+    ("cloud", "whois.nic.cloud"),
+    ("global", "whois.nic.global"),
+    ("host", "whois.nic.host"),
+    ("link", "whois.nic.link"),
+
+    // ccTLDs (Country Codes)
+    ("ac", "whois.nic.ac"),
+    ("ae", "whois.aeda.net.ae"),
+    ("am", "whois.amnic.net"),
+    ("at", "whois.nic.at"),
+    ("au", "whois.auda.org.au"), // covers com.au
+    ("be", "whois.dns.be"),
+    ("br", "whois.registro.br"), // covers com.br
+    ("by", "whois.cctld.by"),
+    ("ca", "whois.cira.ca"),
+    ("ch", "whois.nic.ch"),
+    ("cl", "whois.nic.cl"),
+    ("cn", "whois.cnnic.cn"), // covers com.cn
+    ("co", "whois.nic.co"),
+    ("cz", "whois.nic.cz"),
+    ("de", "whois.denic.de"),
+    ("dk", "whois.dk-hostmaster.dk"),
+    ("dz", "whois.nic.dz"),
+    ("es", "whois.nic.es"),
+    ("eu", "whois.eu"),
+    ("fi", "whois.fi"),
+    ("fr", "whois.nic.fr"),
+    ("hk", "whois.hkirc.hk"),
+    ("hr", "whois.dns.hr"),
+    ("hu", "whois.nic.hu"),
+    ("id", "whois.pandi.or.id"), // covers co.id
+    ("ie", "whois.iedr.ie"),
+    ("il", "whois.isoc.org.il"), // covers co.il
+    ("in", "whois.registry.in"), // covers co.in
+    ("ir", "whois.nic.ir"),
+    ("is", "whois.isnic.is"),
+    ("it", "whois.nic.it"),
+    ("jp", "whois.jprs.jp"), // covers co.jp
+    ("kr", "whois.kr"), // covers co.kr
+    ("kz", "whois.nic.kz"),
+    ("lt", "whois.domreg.lt"),
+    ("lu", "whois.dns.lu"),
+    ("lv", "whois.nic.lv"),
+    ("ma", "whois.registre.ma"),
+    ("mx", "whois.mx"), // covers com.mx
+    ("nl", "whois.domain-registry.nl"),
+    ("no", "whois.norid.no"),
+    ("nz", "whois.srs.net.nz"), // covers co.nz
+    ("pt", "whois.dns.pt"),
+    ("pl", "whois.dns.pl"), // covers com.pl
+    ("ro", "whois.rotld.ro"),
+    ("rs", "whois.rnids.rs"),
+    ("ru", "whois.tcinet.ru"),
+    ("se", "whois.iis.se"),
+    ("sg", "whois.sgnic.sg"), // covers com.sg
+    ("si", "whois.register.si"),
+    ("sk", "whois.sk-nic.sk"),
+    ("su", "whois.tcinet.ru"),
+    ("th", "whois.thnic.co.th"), // covers co.th
+    ("tr", "whois.trabis.gov.tr"), // Covers com.tr, org.tr, etc.
+    ("tw", "whois.twnic.net.tw"), // covers com.tw
+    ("ua", "whois.ua"), // covers com.ua
+    ("uk", "whois.nic.uk"), // Covers co.uk, org.uk
+    ("us", "whois.nic.us"),
+    ("za", "whois.registry.net.za"), // covers co.za
 ];
 
 /// Common ports for scanning
