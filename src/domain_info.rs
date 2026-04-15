@@ -141,6 +141,7 @@ pub struct SecurityInfo {
 
 pub async fn get_domain_info(
     domain: &str,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<DomainInfoResult, Box<dyn std::error::Error + Send + Sync>> {
     let clean = clean_domain(domain);
 
@@ -151,8 +152,11 @@ pub async fn get_domain_info(
         .user_agent("Mozilla/5.0")
         .build()?;
 
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Domain Info".into(), percentage: 5.0, message: format!("Initializing scan for {}", clean), status: "Info".into() }).await; }
+
     // ── IP Resolution ───────────────────────────────────────────────────
     let (mut ipv4, mut all_ipv4, mut ipv6) = (None, vec![], vec![]);
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "IP Resolution".into(), percentage: 10.0, message: "Resolving IP addresses...".into(), status: "Info".into() }).await; }
 
     if let Ok(addrs) = tokio::net::lookup_host(format!("{}:80", clean)).await {
         for addr in addrs {
@@ -169,21 +173,54 @@ pub async fn get_domain_info(
     if !all_ipv4.is_empty() {
         ipv4 = Some(all_ipv4[0].clone());
     }
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "IP Resolution".into(), percentage: 15.0, message: "IP Resolution completed".into(), status: "Success".into() }).await; }
 
     // ── Reverse DNS ─────────────────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Reverse DNS".into(), percentage: 18.0, message: "Looking up reverse DNS...".into(), status: "Info".into() }).await; }
     let reverse_dns = if let Some(ref ip) = ipv4 {
         reverse_dns_lookup(ip).await
     } else {
         None
     };
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Reverse DNS".into(), percentage: 20.0, message: "Reverse DNS completed".into(), status: "Success".into() }).await; }
 
     // ── Run concurrent tasks ────────────────────────────────────────────
-    let whois_fut = query_whois(&clean);
-    let ssl_fut = check_ssl(&clean);
-    let dns_fut = get_dns_records(&clean);
-    let ports_fut = scan_ports(ipv4.as_deref());
-    let http_fut = check_http_status(&client, &clean);
-    let security_fut = check_security(&client, &clean);
+    let whois_fut = async {
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "WHOIS".into(), percentage: 25.0, message: "Querying WHOIS registries...".into(), status: "Info".into() }).await; }
+        let res = query_whois(&clean).await;
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "WHOIS".into(), percentage: 40.0, message: "WHOIS data retrieved".into(), status: "Success".into() }).await; }
+        res
+    };
+    let ssl_fut = async {
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "SSL".into(), percentage: 30.0, message: "Verifying SSL certificates...".into(), status: "Info".into() }).await; }
+        let res = check_ssl(&clean).await;
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "SSL".into(), percentage: 50.0, message: "SSL certificate validated".into(), status: "Success".into() }).await; }
+        res
+    };
+    let dns_fut = async {
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "DNS".into(), percentage: 35.0, message: "Fetching DNS records...".into(), status: "Info".into() }).await; }
+        let res = get_dns_records(&clean).await;
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "DNS".into(), percentage: 60.0, message: "DNS records retrieved".into(), status: "Success".into() }).await; }
+        res
+    };
+    let ports_fut = async {
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Ports".into(), percentage: 40.0, message: "Scanning common ports...".into(), status: "Info".into() }).await; }
+        let res = scan_ports(ipv4.as_deref()).await;
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Ports".into(), percentage: 70.0, message: "Port scanning complete".into(), status: "Success".into() }).await; }
+        res
+    };
+    let http_fut = async {
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "HTTP".into(), percentage: 45.0, message: "Checking HTTP status...".into(), status: "Info".into() }).await; }
+        let res = check_http_status(&client, &clean).await;
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "HTTP".into(), percentage: 80.0, message: "HTTP check complete".into(), status: "Success".into() }).await; }
+        res
+    };
+    let security_fut = async {
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 50.0, message: "Analyzing security headers...".into(), status: "Info".into() }).await; }
+        let res = check_security(&client, &clean).await;
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 90.0, message: "Security analysis complete".into(), status: "Success".into() }).await; }
+        res
+    };
 
     let (whois, ssl, dns, open_ports, http_info, security) = tokio::join!(
         whois_fut,

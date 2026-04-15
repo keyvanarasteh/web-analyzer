@@ -193,12 +193,15 @@ pub struct SeoScoreResult {
 
 pub async fn analyze_advanced_seo(
     domain: &str,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<SeoAnalysisResult, Box<dyn std::error::Error + Send + Sync>> {
     let url = if domain.starts_with("http") {
         domain.to_string()
     } else {
         format!("https://{}", domain)
     };
+
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "SEO Analysis".into(), percentage: 5.0, message: "Fetching homepage HTML...".into(), status: "Info".into() }).await; }
 
     let client = Client::builder()
         .timeout(Duration::from_secs(20))
@@ -221,8 +224,12 @@ pub async fn analyze_advanced_seo(
         .replace("http://", "")
         .replace("www.", "");
 
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "SEO Analysis".into(), percentage: 20.0, message: "HTML fetched. Searching for SEO resources (sitemap, robots)...".into(), status: "Success".into() }).await; }
+
     // ── 8. SEO Resources (await before parsing HTML to avoid Send bounds) ──
     let seo_resources = check_seo_resources(&client, domain).await;
+
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "SEO Analysis".into(), percentage: 40.0, message: "Parsing HTML document...".into(), status: "Info".into() }).await; }
 
     let document = Html::parse_document(&html_text);
 
@@ -241,11 +248,15 @@ pub async fn analyze_advanced_seo(
         &base_domain,
     );
 
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "SEO Analysis".into(), percentage: 60.0, message: "Analyzing Social Media & Analytics...".into(), status: "Info".into() }).await; }
+
     // ── 4. Social Media Tags ────────────────────────────────────────────
     let social_media = analyze_social_tags(&document);
 
     // ── 5. Analytics & Tracking ─────────────────────────────────────────
     let analytics = analyze_analytics(&html_text);
+
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "SEO Analysis".into(), percentage: 80.0, message: "Calculating SEO Core Web Factors...".into(), status: "Info".into() }).await; }
 
     // ── 6. Performance ──────────────────────────────────────────────────
     let performance = analyze_performance(&headers, load_time, content_size);
@@ -274,6 +285,8 @@ pub async fn analyze_advanced_seo(
         &performance,
         &mobile_accessibility,
     );
+
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "SEO Analysis".into(), percentage: 100.0, message: "SEO Analysis successfully completed.".into(), status: "Success".into() }).await; }
 
     Ok(SeoAnalysisResult {
         domain: domain.to_string(),

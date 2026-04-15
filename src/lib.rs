@@ -62,6 +62,17 @@
 /// Error types for the web-analyzer crate.
 pub mod error;
 
+use serde::{Deserialize, Serialize};
+
+/// Standardized progress event for async tasks.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScanProgress {
+    pub module: String,
+    pub percentage: f32,
+    pub message: String,
+    pub status: String,
+}
+
 /// Compile-time embedded payloads from the `payloads/` directory.
 pub mod payloads;
 
