@@ -177,6 +177,16 @@ const SECURITY_HEADERS: &[&str] = &[
     "x-content-type-options",
     "x-xss-protection",
     "content-security-policy",
+    "content-security-policy-report-only",
+    "permissions-policy",
+    "referrer-policy",
+    "x-permitted-cross-domain-policies",
+    "expect-ct",
+    "cross-origin-embedder-policy",
+    "cross-origin-opener-policy",
+    "cross-origin-resource-policy",
+    "access-control-allow-origin",
+    "server-timing",
 ];
 
 /// Privacy keywords in WHOIS output
