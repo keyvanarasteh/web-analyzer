@@ -1,6 +1,6 @@
 # Web Analyzer — Documentation Index
 
-> **Crate:** `web-analyzer` v0.1.0
+> **Crate:** `web-analyzer` v0.1.8
 > **Edition:** Rust 2021
 > **Total:** 15 modules · 6,725 lines · 14 feature flags
 
@@ -171,13 +171,13 @@ cargo test --all-features
 
 Some modules require external tools:
 
-| Tool | Modules | Install |
-|------|---------|---------|
-| `dig` | domain_dns, domain_info, domain_validator, subdomain_takeover | `apt install dnsutils` |
-| `nmap` | nmap_zero_day | `apt install nmap` |
-| `subfinder` | subdomain_discovery | `go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest` |
-| `openssl` | security_analysis, domain_validator | `apt install openssl` |
-| `whois` | domain_info | `apt install whois` |
+| Tool | Modules | Install | Support |
+|------|---------|---------|---------|
+| `dig` | domain_dns, domain_info, domain_validator, subdomain_takeover | `apt install dnsutils` | Desktop Only (Mobile natively proxies `hickory-resolver`) |
+| `nmap` | nmap_zero_day | `apt install nmap` | Desktop Only (Disabled on Mobile) |
+| `subfinder` | subdomain_discovery | `go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest` | Desktop Only (Disabled on Mobile) |
+| `openssl` | security_analysis, domain_validator | `apt install openssl` | Desktop Only (Mobile natively proxies `rustls`/`reqwest`) |
+| `whois` | domain_info | `apt install whois` | Desktop Only (Mobile natively proxies RFC TCP ports) |
 
 ---
 
@@ -202,8 +202,8 @@ web-analyzer/
 │   ├── cloudflare_bypass.rs        # Origin IP discovery
 │   ├── nmap_zero_day.rs            # CVE & exploit detection
 │   ├── api_security_scanner.rs     # API vulnerability testing
-│   ├── geo_analysis.rs            # AI/LLM readiness analysis
-│   └── *_mobile.rs                 # Mobile graceful fallback mock polyfills
+│   ├── geo_analysis.rs              # AI/LLM readiness analysis
+│   └── Mobile Polyfills/             # `*_mobile.rs` pure-rust fallbacks for Android/iOS
 ├── docs/
 │   ├── readme.md                    # This file
 │   └── [module_name].md            # Per-module documentation (14 files)

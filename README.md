@@ -20,7 +20,7 @@
   <a href="#"><img src="https://img.shields.io/badge/http-reqwest-blue?style=flat-square" alt="Reqwest"></a>
   <a href="#"><img src="https://img.shields.io/badge/html-scraper-red?style=flat-square" alt="Scraper"></a>
   <a href="#"><img src="https://img.shields.io/badge/serialization-serde-orange?style=flat-square" alt="Serde"></a>
-  <a href="#"><img src="https://img.shields.io/badge/platform-linux-lightgrey?style=flat-square&logo=linux" alt="Linux"></a>
+  <a href="#"><img src="https://img.shields.io/badge/platform-desktop%20%26%20mobile-lightgrey?style=flat-square&logo=linux" alt="Cross-Platform"></a>
 </p>
 
 ---
@@ -65,7 +65,7 @@ async fn main() {
 - **WordPress deep analysis** — version, theme, plugins, user enumeration, XMLRPC
 - **36-service subdomain takeover DB** with exploitation difficulty ratings
 - **Parallel bulk domain validation** with atomic counters
-- **Mobile Graceful Degradation** — `_mobile.rs` polyfills and fallbacks for seamless Android/iOS compilation.
+- **Mobile Graceful Degradation** — `*_mobile.rs` pure-rust polyfills for seamless Android/iOS compilation bridging DNS (`hickory`) and HTTP/TLS (`reqwest`).
 
 ---
 
@@ -153,7 +153,7 @@ Include only what you need:
 
 ```toml
 [dependencies]
-web-analyzer = { version = "0.1.0", features = ["domain-info", "security-analysis"] }
+web-analyzer = { version = "0.1.8", features = ["domain-info", "security-analysis"] }
 ```
 
 <details>
@@ -247,7 +247,9 @@ web-analyzer/
 │   │── cloudflare_bypass.rs          # Origin IP discovery
 │   │── nmap_zero_day.rs              # CVE & exploit detection
 │   │── api_security_scanner.rs       # API vulnerability testing
-│   └── geo_analysis.rs              # AI/LLM readiness
+│   │── geo_analysis.rs              # AI/LLM readiness
+│   │
+│   └── Mobile Polyfills/             # `*_mobile.rs` files for Android/iOS fallbacks
 │
 ├── docs/                             # Module documentation (14 files)
 │   ├── readme.md                     # Documentation index
