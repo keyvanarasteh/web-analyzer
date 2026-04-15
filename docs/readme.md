@@ -202,7 +202,8 @@ web-analyzer/
 │   ├── cloudflare_bypass.rs        # Origin IP discovery
 │   ├── nmap_zero_day.rs            # CVE & exploit detection
 │   ├── api_security_scanner.rs     # API vulnerability testing
-│   └── geo_analysis.rs            # AI/LLM readiness analysis
+│   ├── geo_analysis.rs            # AI/LLM readiness analysis
+│   └── *_mobile.rs                 # Mobile graceful fallback mock polyfills
 ├── docs/
 │   ├── readme.md                    # This file
 │   └── [module_name].md            # Per-module documentation (14 files)

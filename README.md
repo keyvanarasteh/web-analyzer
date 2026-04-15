@@ -65,6 +65,7 @@ async fn main() {
 - **WordPress deep analysis** — version, theme, plugins, user enumeration, XMLRPC
 - **36-service subdomain takeover DB** with exploitation difficulty ratings
 - **Parallel bulk domain validation** with atomic counters
+- **Mobile Graceful Degradation** — `_mobile.rs` polyfills and fallbacks for seamless Android/iOS compilation.
 
 ---
 
@@ -178,6 +179,13 @@ cloudflare-bypass = []
 nmap-zero-day = []
 api-security-scanner = []
 geo-analysis = []
+
+# Mobile Graceful Degradation Variants
+domain-info-mobile = ["hickory-resolver", "x509-parser", "rustls"]
+domain-dns-mobile = ["hickory-resolver"]
+domain-validator-mobile = ["hickory-resolver", "x509-parser", "rustls"]
+security-analysis-mobile = ["x509-parser", "rustls"]
+subdomain-takeover-mobile = ["hickory-resolver"]
 ```
 
 </details>

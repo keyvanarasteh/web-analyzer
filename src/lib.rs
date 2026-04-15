@@ -82,9 +82,17 @@ pub mod payloads;
 #[cfg_attr(docsrs, doc(cfg(feature = "domain-info")))]
 pub mod domain_info;
 
+#[cfg(feature = "domain-info-mobile")]
+#[cfg_attr(docsrs, doc(cfg(feature = "domain-info-mobile")))]
+pub mod domain_info_mobile;
+
 #[cfg(feature = "domain-dns")]
 #[cfg_attr(docsrs, doc(cfg(feature = "domain-dns")))]
 pub mod domain_dns;
+
+#[cfg(feature = "domain-dns-mobile")]
+#[cfg_attr(docsrs, doc(cfg(feature = "domain-dns-mobile")))]
+pub mod domain_dns_mobile;
 
 #[cfg(feature = "seo-analysis")]
 #[cfg_attr(docsrs, doc(cfg(feature = "seo-analysis")))]
@@ -98,11 +106,21 @@ pub mod web_technologies;
 #[cfg_attr(docsrs, doc(cfg(feature = "domain-validator")))]
 pub mod domain_validator;
 
+#[cfg(feature = "domain-validator-mobile")]
+#[cfg_attr(docsrs, doc(cfg(feature = "domain-validator-mobile")))]
+pub mod domain_validator_mobile;
+
 // ── Reconnaissance ──────────────────────────────────────────────────
 
-#[cfg(feature = "subdomain-discovery")]
+#[cfg(all(feature = "subdomain-discovery", not(any(target_os = "android", target_os = "ios"))))]
 #[cfg_attr(docsrs, doc(cfg(feature = "subdomain-discovery")))]
 pub mod subdomain_discovery;
+
+#[cfg(all(feature = "subdomain-discovery", any(target_os = "android", target_os = "ios")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "subdomain-discovery-mobile")))]
+pub mod subdomain_discovery_mobile;
+#[cfg(all(feature = "subdomain-discovery", any(target_os = "android", target_os = "ios")))]
+pub use subdomain_discovery_mobile as subdomain_discovery;
 
 #[cfg(feature = "contact-spy")]
 #[cfg_attr(docsrs, doc(cfg(feature = "contact-spy")))]
@@ -118,17 +136,31 @@ pub mod advanced_content_scanner;
 #[cfg_attr(docsrs, doc(cfg(feature = "security-analysis")))]
 pub mod security_analysis;
 
+#[cfg(feature = "security-analysis-mobile")]
+#[cfg_attr(docsrs, doc(cfg(feature = "security-analysis-mobile")))]
+pub mod security_analysis_mobile;
+
 #[cfg(feature = "subdomain-takeover")]
 #[cfg_attr(docsrs, doc(cfg(feature = "subdomain-takeover")))]
 pub mod subdomain_takeover;
+
+#[cfg(feature = "subdomain-takeover-mobile")]
+#[cfg_attr(docsrs, doc(cfg(feature = "subdomain-takeover-mobile")))]
+pub mod subdomain_takeover_mobile;
 
 #[cfg(feature = "cloudflare-bypass")]
 #[cfg_attr(docsrs, doc(cfg(feature = "cloudflare-bypass")))]
 pub mod cloudflare_bypass;
 
-#[cfg(feature = "nmap-zero-day")]
+#[cfg(all(feature = "nmap-zero-day", not(any(target_os = "android", target_os = "ios"))))]
 #[cfg_attr(docsrs, doc(cfg(feature = "nmap-zero-day")))]
 pub mod nmap_zero_day;
+
+#[cfg(all(feature = "nmap-zero-day", any(target_os = "android", target_os = "ios")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "nmap-zero-day-mobile")))]
+pub mod nmap_zero_day_mobile;
+#[cfg(all(feature = "nmap-zero-day", any(target_os = "android", target_os = "ios")))]
+pub use nmap_zero_day_mobile as nmap_zero_day;
 
 #[cfg(feature = "api-security-scanner")]
 #[cfg_attr(docsrs, doc(cfg(feature = "api-security-scanner")))]

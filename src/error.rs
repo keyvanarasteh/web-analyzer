@@ -40,6 +40,10 @@ pub enum WebAnalyzerError {
     /// A generic error for uncategorized failures.
     #[error("{0}")]
     Other(String),
+
+    /// A feature was invoked on an incompatible operating system architecture.
+    #[error("Platform unsupported: {0}")]
+    UnsupportedPlatform(String),
 }
 
 /// Convenience alias for `Result<T, WebAnalyzerError>`.
