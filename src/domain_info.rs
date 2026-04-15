@@ -344,7 +344,12 @@ pub async fn query_whois(domain: &str) -> WhoisInfo {
             .replace("whois://", "")
             .replace("http://", "")
             .replace("https://", "");
-        query_whois_tcp(domain, &referral).await.unwrap_or(output)
+            
+        if let Some(ref_out) = query_whois_tcp(domain, &referral).await {
+            format!("{}\n---\n{}", output, ref_out)
+        } else {
+            output
+        }
     } else {
         output
     };
