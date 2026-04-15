@@ -3,7 +3,7 @@
 async fn test_get_domain_info_basic() {
     use web_analyzer::domain_info::get_domain_info;
 
-    let result = get_domain_info("example.com").await;
+    let result = get_domain_info("example.com", None).await;
     assert!(
         result.is_ok(),
         "Failed to get domain info: {:?}",

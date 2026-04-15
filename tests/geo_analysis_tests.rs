@@ -3,7 +3,7 @@
 async fn test_geo_analysis() {
     use web_analyzer::geo_analysis::analyze_geo;
 
-    let result = analyze_geo("example.com").await;
+    let result = analyze_geo("example.com", None).await;
     assert!(result.is_ok(), "Failed: {:?}", result.err());
 
     let info = result.unwrap();

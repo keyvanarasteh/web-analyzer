@@ -281,6 +281,7 @@ pub struct TakeoverResult {
 pub async fn check_subdomain_takeover(
     domain: &str,
     subdomains: &[String],
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<TakeoverResult, Box<dyn std::error::Error + Send + Sync>> {
     let client = Client::builder()
         .timeout(Duration::from_secs(10))
@@ -288,15 +289,18 @@ pub async fn check_subdomain_takeover(
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .build()?;
 
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Subdomain Takeover".into(), percentage: 5.0, message: "Initializing subdomain takeover checks...".into(), status: "Info".into() }).await; }
     let start = std::time::Instant::now();
     let mut vulnerable = Vec::new();
 
-    for sub in subdomains {
+    for (i, sub) in subdomains.iter().enumerate() {
+        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Subdomain Takeover".into(), percentage: 5.0 + (90.0 * (i as f32 / subdomains.len().max(1) as f32)), message: format!("Checking {} for dangling records...", sub), status: "Info".into() }).await; }
         if let Some(vuln) = check_single_subdomain(&client, sub).await {
             vulnerable.push(vuln);
         }
     }
 
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Subdomain Takeover".into(), percentage: 95.0, message: "Sorting and finalizing vulnerability results...".into(), status: "Info".into() }).await; }
     // Sort by confidence: High → Medium → Low
     vulnerable.sort_by(|a, b| {
         let order = |c: &str| -> u8 {

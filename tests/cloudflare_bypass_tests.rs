@@ -3,7 +3,7 @@
 async fn test_cloudflare_bypass() {
     use web_analyzer::cloudflare_bypass::find_real_ip;
 
-    let result = find_real_ip("example.com").await;
+    let result = find_real_ip("example.com", None).await;
     assert!(result.is_ok(), "Failed: {:?}", result.err());
 
     let info = result.unwrap();

@@ -21,10 +21,10 @@ async fn main() {
 
     // Run all analyses concurrently
     let (info, dns, security, seo, tech) = tokio::join!(
-        get_domain_info(&domain),
-        get_dns_records(&domain),
-        analyze_security(&domain),
-        analyze_advanced_seo(&domain),
+        get_domain_info(&domain, None),
+        get_dns_records(&domain, None),
+        analyze_security(&domain, None),
+        analyze_advanced_seo(&domain, None),
         detect_web_technologies(&domain),
     );
 

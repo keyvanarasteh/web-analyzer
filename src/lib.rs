@@ -42,7 +42,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     let info = get_domain_info("example.com").await.unwrap();
+//!     let info = get_domain_info("example.com", None).await.unwrap();
 //!     println!("IP: {:?}", info.ipv4);
 //! }
 //! ```

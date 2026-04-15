@@ -191,6 +191,7 @@ pub struct SecurityScoreResult {
 
 pub async fn analyze_security(
     domain: &str,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<SecurityAnalysisResult, Box<dyn std::error::Error + Send + Sync>> {
     let clean = if domain.starts_with("http://") || domain.starts_with("https://") {
         domain
@@ -252,30 +253,39 @@ pub async fn analyze_security(
     let body_text = primary.text().await.unwrap_or_default();
 
     // ── 1. WAF Detection ────────────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 10.0, message: "Detecting Web Application Firewalls (WAF)...".into(), status: "Info".into() }).await; }
     let waf_detection = detect_waf(&headers);
 
     // ── 2. Security Headers ─────────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 20.0, message: "Analyzing HTTP security headers...".into(), status: "Info".into() }).await; }
     let security_headers = analyze_security_headers(&headers);
 
     // ── 3. SSL Analysis ─────────────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 30.0, message: "Evaluating SSL/TLS handshake and ciphers...".into(), status: "Info".into() }).await; }
     let ssl_analysis = analyze_ssl(&clean).await;
 
     // ── 4. CORS Policy ──────────────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 60.0, message: "Inspecting CORS policy configuration...".into(), status: "Info".into() }).await; }
     let cors_policy = analyze_cors(&headers);
 
     // ── 5. Cookie Security ──────────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 70.0, message: "Checking cookie security flags...".into(), status: "Info".into() }).await; }
     let cookie_security = analyze_cookies(&headers);
 
     // ── 6. HTTP Methods ─────────────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 75.0, message: "Discovering allowed HTTP methods...".into(), status: "Info".into() }).await; }
     let http_methods = detect_methods(&client, &https_url).await;
 
     // ── 7. Server Information ───────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 85.0, message: "Looking for server information disclosure...".into(), status: "Info".into() }).await; }
     let server_information = analyze_server_info(&headers);
 
     // ── 8. Vulnerability Scan ───────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 90.0, message: "Performing basic vulnerability pattern matching...".into(), status: "Info".into() }).await; }
     let vulnerability_scan = perform_vuln_scan(&resp_url, &body_text);
 
     // ── 9. Score & Recommendations ──────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 95.0, message: "Calculating final security score...".into(), status: "Info".into() }).await; }
     let security_score = calculate_score(
         &security_headers,
         &ssl_analysis,

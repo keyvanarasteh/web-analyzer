@@ -3,7 +3,7 @@
 async fn test_get_dns_records() {
     use web_analyzer::domain_dns::get_dns_records;
 
-    let result = get_dns_records("example.com").await;
+    let result = get_dns_records("example.com", None).await;
     assert!(
         result.is_ok(),
         "Failed to get DNS records: {:?}",

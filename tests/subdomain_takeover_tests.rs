@@ -4,7 +4,7 @@ async fn test_subdomain_takeover() {
     use web_analyzer::subdomain_takeover::check_subdomain_takeover;
 
     // Test with empty subdomain list (basic smoke test)
-    let result = check_subdomain_takeover("example.com", &[]).await;
+    let result = check_subdomain_takeover("example.com", &[], None).await;
     assert!(result.is_ok(), "Failed: {:?}", result.err());
 
     let info = result.unwrap();

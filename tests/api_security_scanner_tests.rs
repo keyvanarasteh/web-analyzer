@@ -5,7 +5,7 @@ mod api_scanner_tests {
     // ── Test 1: End-to-end scan ─────────────────────────────────────────
     #[tokio::test]
     async fn test_scan_api_endpoints() {
-        let result = scan_api_endpoints("example.com").await;
+        let result = scan_api_endpoints("example.com", None).await;
         assert!(result.is_ok(), "Failed: {:?}", result.err());
 
         let info = result.unwrap();

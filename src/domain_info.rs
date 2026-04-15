@@ -569,11 +569,14 @@ async fn check_ssl(domain: &str) -> SslInfo {
                 ssl.expiry_date = Some(expiry_str.clone());
 
                 // Compute days_until_expiry from parsed date
-                // OpenSSL format: "Jun 15 12:00:00 2025 GMT"
-                if let Ok(expiry) = chrono::NaiveDateTime::parse_from_str(
-                    expiry_str.trim_end_matches(" GMT").trim_end_matches(" UTC"),
-                    "%b %d %H:%M:%S %Y",
-                ) {
+                // OpenSSL format: "Jun 15 12:00:00 2025 GMT" or "Jun  5 12:00:00 2025 GMT"
+                let clean_expiry = expiry_str.trim_end_matches(" GMT").trim_end_matches(" UTC");
+                
+                // Try parsing with space-padded day (%e) or zero-padded day (%d)
+                let parsed_date = chrono::NaiveDateTime::parse_from_str(clean_expiry, "%b %e %H:%M:%S %Y")
+                    .or_else(|_| chrono::NaiveDateTime::parse_from_str(clean_expiry, "%b %d %H:%M:%S %Y"));
+                    
+                if let Ok(expiry) = parsed_date {
                     let now = chrono::Utc::now().naive_utc();
                     ssl.days_until_expiry = Some((expiry - now).num_days());
                 }

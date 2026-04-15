@@ -3,7 +3,7 @@
 async fn test_analyze_security() {
     use web_analyzer::security_analysis::analyze_security;
 
-    let result = analyze_security("example.com").await;
+    let result = analyze_security("example.com", None).await;
     assert!(
         result.is_ok(),
         "Failed to analyze security: {:?}",

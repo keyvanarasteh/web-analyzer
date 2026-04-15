@@ -10,7 +10,7 @@ async fn test_nmap_scan() {
         .await;
 
     if nmap_check.map(|o| o.status.success()).unwrap_or(false) {
-        let result = run_nmap_scan("example.com").await;
+        let result = run_nmap_scan("example.com", None).await;
         assert!(result.is_ok(), "Failed: {:?}", result.err());
 
         let info = result.unwrap();

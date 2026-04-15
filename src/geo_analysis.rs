@@ -50,6 +50,7 @@ const AI_BOTS: &[&str] = &[
 
 pub async fn analyze_geo(
     domain: &str,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<GeoAnalysisResult, Box<dyn std::error::Error + Send + Sync>> {
     let base_url = if domain.starts_with("http") {
         domain.to_string()
@@ -63,6 +64,7 @@ pub async fn analyze_geo(
         .build()?;
 
     // ── 1. Check llms.txt ───────────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Geo Analysis".into(), percentage: 10.0, message: "Checking for llms.txt presence...".into(), status: "Info".into() }).await; }
     let llms_paths = ["/llms.txt", "/llms-full.txt", "/.well-known/llms.txt"];
     let mut llms_found = Vec::new();
     for path in &llms_paths {
@@ -83,6 +85,7 @@ pub async fn analyze_geo(
     }
 
     // ── 2. Check WebMCP endpoints + HTML features ───────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Geo Analysis".into(), percentage: 40.0, message: "Scanning for Model Context Protocol (MCP) endpoints...".into(), status: "Info".into() }).await; }
     let mcp_paths = ["/.well-known/mcp", "/mcp.json"];
     let mut mcp_found = Vec::new();
     for path in &mcp_paths {
@@ -114,6 +117,7 @@ pub async fn analyze_geo(
     let mcp_has_anything = !mcp_found.is_empty() || !html_features.is_empty();
 
     // ── 3. Check AI crawler directives in robots.txt ────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Geo Analysis".into(), percentage: 70.0, message: "Analyzing AI crawler directives in robots.txt...".into(), status: "Info".into() }).await; }
     let mut directives: HashMap<String, String> = AI_BOTS
         .iter()
         .map(|b| (b.to_string(), "Unknown".into()))
@@ -173,6 +177,7 @@ pub async fn analyze_geo(
     };
 
     // ── Score calculation ────────────────────────────────────────────────
+    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Geo Analysis".into(), percentage: 90.0, message: "Calculating Geofencing AI readiness score...".into(), status: "Info".into() }).await; }
     let mut score: u32 = 0;
 
     // llms.txt (up to 40 pts)

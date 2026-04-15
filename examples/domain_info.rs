@@ -15,7 +15,7 @@ async fn main() {
 
     println!("🔍 Analyzing domain: {}\n", domain);
 
-    match get_domain_info(&domain).await {
+    match get_domain_info(&domain, None).await {
         Ok(info) => {
             println!("━━━ Domain Intelligence ━━━━━━━━━━━━━━━━━━━━");
             println!("  Domain:       {}", info.domain);

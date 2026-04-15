@@ -3,7 +3,7 @@
 async fn test_analyze_advanced_seo() {
     use web_analyzer::seo_analysis::analyze_advanced_seo;
 
-    let result = analyze_advanced_seo("example.com").await;
+    let result = analyze_advanced_seo("example.com", None).await;
     assert!(
         result.is_ok(),
         "Failed to get SEO analysis: {:?}",

@@ -15,7 +15,7 @@ async fn main() {
 
     println!("🛡️  Security scan: {}\n", domain);
 
-    match analyze_security(&domain).await {
+    match analyze_security(&domain, None).await {
         Ok(report) => {
             println!("━━━ WAF Detection ━━━━━━━━━━━━━━━━━━━━━━━━━━");
             println!("  Detected:  {}", report.waf_detection.detected);
