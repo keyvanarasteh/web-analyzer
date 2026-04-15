@@ -144,8 +144,10 @@ pub async fn discover_subdomains(
         let sem_c = semaphore.clone();
         set.spawn(async move {
             let _permit = sem_c.acquire().await;
-            let url = format!("http://{}", host);
-            match client_c.get(&url).send().await {
+            
+            // Probing HTTP -> HTTPS
+            let url_http = format!("http://{}", host);
+            match client_c.get(&url_http).send().await {
                 Ok(r) => {
                     SubdomainDetail {
                         host,
@@ -153,11 +155,24 @@ pub async fn discover_subdomains(
                         resolution_error: None,
                     }
                 },
-                Err(e) => {
-                    SubdomainDetail {
-                        host,
-                        status: None,
-                        resolution_error: Some(e.to_string()),
+                Err(e_http) => {
+                    // Try HTTPS if HTTP completely drops
+                    let url_https = format!("https://{}", host);
+                    match client_c.get(&url_https).send().await {
+                        Ok(r) => {
+                            SubdomainDetail {
+                                host,
+                                status: Some(r.status().as_u16()),
+                                resolution_error: None,
+                            }
+                        },
+                        Err(e_https) => {
+                            SubdomainDetail {
+                                host,
+                                status: None,
+                                resolution_error: Some(format!("HTTP: {} | HTTPS: {}", e_http, e_https)),
+                            }
+                        }
                     }
                 }
             }
