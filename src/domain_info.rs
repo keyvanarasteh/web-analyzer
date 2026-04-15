@@ -528,7 +528,18 @@ async fn check_ssl(domain: &str) -> SslInfo {
             let cert_text = String::from_utf8_lossy(&cert_output.stdout);
 
             if let Some(m) = Regex::new(r"notAfter=(.+)").ok().and_then(|r| r.captures(&cert_text)) {
-                ssl.expiry_date = Some(m.get(1).unwrap().as_str().trim().to_string());
+                let expiry_str = m.get(1).unwrap().as_str().trim().to_string();
+                ssl.expiry_date = Some(expiry_str.clone());
+
+                // Compute days_until_expiry from parsed date
+                // OpenSSL format: "Jun 15 12:00:00 2025 GMT"
+                if let Ok(expiry) = chrono::NaiveDateTime::parse_from_str(
+                    expiry_str.trim_end_matches(" GMT").trim_end_matches(" UTC"),
+                    "%b %d %H:%M:%S %Y",
+                ) {
+                    let now = chrono::Utc::now().naive_utc();
+                    ssl.days_until_expiry = Some((expiry - now).num_days());
+                }
             }
 
             // Extract SANs
