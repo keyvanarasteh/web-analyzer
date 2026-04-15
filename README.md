@@ -44,7 +44,7 @@ use web_analyzer::domain_info::get_domain_info;
 
 #[tokio::main]
 async fn main() {
-    let info = get_domain_info("example.com").await.unwrap();
+    let info = get_domain_info("example.com", None).await.unwrap();
     println!("IP: {:?}, Score: {}/100", info.ipv4, info.security_score);
 }
 ```
@@ -60,6 +60,7 @@ async fn main() {
 - **Feature-gated compilation** — include only what you need
 - **Fully async** — built on Tokio for concurrent analysis
 - **Zero Python dependencies** — pure Rust with system tool integration
+- **Real-time UI streaming** — `ScanProgress` MPSC capabilities for high-latency modules
 - **Comprehensive output** — all results serialize to JSON via Serde
 - **WordPress deep analysis** — version, theme, plugins, user enumeration, XMLRPC
 - **36-service subdomain takeover DB** with exploitation difficulty ratings
@@ -125,11 +126,11 @@ async fn main() {
     let domain = "example.com";
 
     // Domain intelligence
-    let info = get_domain_info(domain).await.unwrap();
+    let info = get_domain_info(domain, None).await.unwrap();
     println!("IP: {:?}", info.dns_info.a_records);
 
     // Security posture
-    let security = analyze_security(domain).await.unwrap();
+    let security = analyze_security(domain, None).await.unwrap();
     println!("Grade: {} ({}/100)", security.grade, security.security_score);
 
     // Technology fingerprinting
@@ -138,7 +139,7 @@ async fn main() {
 
     // Subdomain takeover check
     let subs = vec!["blog.example.com".into(), "shop.example.com".into()];
-    let takeover = check_subdomain_takeover(domain, &subs).await.unwrap();
+    let takeover = check_subdomain_takeover(domain, &subs, None).await.unwrap();
     println!("Vulnerable: {}", takeover.statistics.vulnerable_count);
 }
 ```

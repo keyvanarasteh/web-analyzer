@@ -137,11 +137,11 @@ async fn main() {
     let domain = "example.com";
 
     // Domain intelligence
-    let info = get_domain_info(domain).await.unwrap();
+    let info = get_domain_info(domain, None).await.unwrap();
     println!("IP: {:?}", info.dns_info.a_records);
 
     // Security analysis
-    let security = analyze_security(domain).await.unwrap();
+    let security = analyze_security(domain, None).await.unwrap();
     println!("Score: {}/100 ({})", security.security_score, security.grade);
 
     // Technology fingerprinting
