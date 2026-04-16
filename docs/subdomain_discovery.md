@@ -72,10 +72,20 @@ Detects whether a domain is a subdomain. Handles:
 | Field | Type | Description |
 |-------|------|-------------|
 | `domain` | `String` | Target domain |
-| `subdomains` | `Vec<String>` | Clean, filtered subdomains |
+| `subdomains` | `Vec<SubdomainDetail>` | Clean, live-checked and filtered subdomains |
 | `total_found` | `usize` | Raw count before filtering |
 | `filtered_count` | `usize` | Number of noise domains removed |
 | `response_time_ms` | `u128` | Subfinder execution time |
+
+### `SubdomainDetail`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `host` | `String` | Clean FQDN host |
+| `ips` | `Vec<String>` | Resolved A/AAAA records |
+| `status_code` | `Option<u16>` | Probed HTTP/HTTPS status |
+| `is_online` | `bool` | True if reachable |
+| `cdn_provider` | `Option<String>` | Parsed CNAME/Provider footprint |
 
 ---
 
@@ -118,7 +128,7 @@ async fn main() {
 
     println!("Found {} subdomains ({} filtered)", result.total_found, result.filtered_count);
     for sub in &result.subdomains {
-        println!("  {} (subdomain: {})", sub, is_subdomain(sub));
+        println!("  {} (Status: {:?})", sub.host, sub.status_code);
     }
 }
 ```

@@ -85,7 +85,7 @@ async fn main() {
 
 | Module                       | Lines | Description                                                           | Docs                                   |
 | ---------------------------- | ----- | --------------------------------------------------------------------- | -------------------------------------- |
-| **subdomain_discovery**      | 109   | Subfinder integration, deduplication, multi-part TLD support          | [📖](docs/subdomain_discovery.md)      |
+| **subdomain_discovery**      | 194   | Subfinder integration, multi-part TLDs, automated HTTP live-probing   | [📖](docs/subdomain_discovery.md)      |
 | **contact_spy**              | 400   | BFS crawl, email/phone/social extraction (15 platforms), validation   | [📖](docs/contact_spy.md)              |
 | **advanced_content_scanner** | 754   | 24 secret patterns, 13 JS vulnerability checks, SSRF, sensitive files | [📖](docs/advanced_content_scanner.md) |
 

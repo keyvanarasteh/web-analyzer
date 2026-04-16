@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2026-04-16
+
+### Added
+- **Subdomain HTTP/HTTPS Resolution**: Subdomain Discovery now actively probes and falls back across protocol schemes natively.
+- **Enhanced WHOIS Root Registries**: Expanded the TLD tracking database to natively support 109 global root registries.
+- **Port Matrix Expansion**: Enhanced `domain_info` to scan 200+ infrastructure-critical application ports.
+- **Security Headers Specification**: Upgraded `security_analysis` to inspect 15 modern headers, including CSP layout metrics.
+
+### Changed
+- **Schema Refactor**: `SubdomainDiscoveryResult` now returns detailed `SubdomainDetail` objects containing explicit status codes and error payloads instead of generic String clusters.
+
 ## [0.1.8] - 2026-04-16
 
 ### Added
