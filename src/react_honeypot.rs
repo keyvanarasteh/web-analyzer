@@ -19,7 +19,6 @@ use chrono::Utc;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::net::IpAddr;
 use std::time::{Duration, Instant};
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -831,7 +830,7 @@ fn attack_vectors() -> &'static [AttackVector] {
                 search_location: "body",
                 context_keywords: &[],
                 patterns: &[
-                    r"(?i)(password|passwd|pwd|pin|secret|token)\s*=\s*['\"][^'\"]{1,20}['\"]",
+                    r#"(?i)(password|passwd|pwd|pin|secret|token)\s*=\s*['\"][^'\"]{1,20}['\"]"#,
                     r#"(?i)\{"(email|username|user|login)"\s*:\s*"[^"]+"\s*,\s*"(password|passwd|pwd)"\s*:\s*""#,
                 ],
             },
@@ -863,8 +862,8 @@ fn attack_vectors() -> &'static [AttackVector] {
                 search_location: "all",
                 context_keywords: &[],
                 patterns: &[
-                    r"(?i)<iframe[^>]*style\s*=\s*['\"]opacity\s*:\s*0",
-                    r"(?i)<iframe[^>]*width\s*=\s*['\"]\d+['\"][^>]*height\s*=\s*['\"]\d+",
+                    r#"(?i)<iframe[^>]*style\s*=\s*['\"]opacity\s*:\s*0"#,
+                    r#"(?i)<iframe[^>]*width\s*=\s*['\"]\d+['\"][^>]*height\s*=\s*['\"]\d+"#,
                 ],
             },
             // ── Source Map Extraction ──
@@ -997,13 +996,12 @@ fn attack_vectors() -> &'static [AttackVector] {
                 search_location: "all",
                 context_keywords: &[],
                 patterns: &[
-                    r"(?i)@import\s+url\s*\(\s*['\"]?https?://",
-                    r"(?i)background(-image)?\s*:\s*url\s*\(\s*['\"]?https?://",
+                    r#"(?i)@import\s+url\s*\(\s*['\"]?https?://"#,
+                    r#"(?i)background(-image)?\s*:\s*url\s*\(\s*['\"]?https?://"#,
                     r#"input\[type\s*=\s*["']password["']\][^{]*\{[^}]*background"#,
                 ],
             },
-        ]
-    })
+    ])
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1057,7 +1055,7 @@ impl HoneypotEngine {
 
     /// Process a raw HTTP request and return detection results.
     pub fn process_request(&mut self, req: &RawRequest) -> DetectionResult {
-        let start = Instant::now();
+        let _start = Instant::now();
         self.state.total_requests += 1;
 
         // Update request rate
@@ -1183,7 +1181,7 @@ impl HoneypotEngine {
     /// Calculate detection confidence based on pattern specificity and context.
     fn calculate_confidence(
         &self,
-        vector: &AttackVector,
+        _vector: &AttackVector,
         matched: &str,
         full_text: &str,
     ) -> f64 {
@@ -1262,7 +1260,7 @@ impl HoneypotEngine {
     }
 
     /// Generate a realistic fake response body.
-    fn simulate_body(&self, req: &RawRequest, detections: &[AttackEvent]) -> String {
+    fn simulate_body(&self, req: &RawRequest, _detections: &[AttackEvent]) -> String {
         if !self.config.fake_rsc_responses {
             return String::new();
         }
