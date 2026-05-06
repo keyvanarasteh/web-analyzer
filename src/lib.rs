@@ -173,3 +173,7 @@ pub mod geo_analysis;
 #[cfg(feature = "react2shell")]
 #[cfg_attr(docsrs, doc(cfg(feature = "react2shell")))]
 pub mod react;
+
+#[cfg(feature = "react-honeypot")]
+#[cfg_attr(docsrs, doc(cfg(feature = "react-honeypot")))]
+pub mod react_honeypot;
