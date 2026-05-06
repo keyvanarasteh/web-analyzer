@@ -233,6 +233,17 @@ struct AttackVector {
     context_keywords: &'static [&'static str],
 }
 
+/// A pre-compiled attack vector with compiled regex patterns.
+struct CompiledVector {
+    category: &'static str,
+    subcategory: &'static str,
+    patterns: Vec<Regex>,
+    severity: Severity,
+    mitre_id: &'static str,
+    search_location: &'static str,
+    context_keywords: &'static [&'static str],
+}
+
 /// All 45+ attack vector definitions.
 fn attack_vectors() -> &'static [AttackVector] {
     use Severity::*;
@@ -1004,6 +1015,32 @@ fn attack_vectors() -> &'static [AttackVector] {
     ])
 }
 
+/// Pre-compiled attack vectors for fast detection.
+fn compiled_vectors() -> &'static [CompiledVector] {
+    static COMPILED: std::sync::OnceLock<Vec<CompiledVector>> = std::sync::OnceLock::new();
+    COMPILED.get_or_init(|| {
+        attack_vectors()
+            .iter()
+            .map(|av| {
+                let patterns: Vec<Regex> = av
+                    .patterns
+                    .iter()
+                    .filter_map(|p| Regex::new(p).ok())
+                    .collect();
+                CompiledVector {
+                    category: av.category,
+                    subcategory: av.subcategory,
+                    patterns,
+                    severity: av.severity.clone(),
+                    mitre_id: av.mitre_id,
+                    search_location: av.search_location,
+                    context_keywords: av.context_keywords,
+                }
+            })
+            .collect()
+    })
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // Honeypot Engine
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1027,9 +1064,9 @@ impl HoneypotEngine {
     /// Create a new honeypot engine with custom configuration.
     pub fn with_config(config: HoneypotConfig) -> Self {
         Self {
-            config,
+            config: config.clone(),
             state: HoneypotState {
-                config: HoneypotConfig::default(),
+                config: config,
                 total_requests: 0,
                 total_attacks_detected: 0,
                 unique_attackers: 0,
@@ -1040,14 +1077,13 @@ impl HoneypotEngine {
             },
             request_times: HashMap::new(),
             rsc_endpoints: vec![
-                "/".to_string(),
+                "/_rsc/__PAGE__".to_string(),
                 "/api/graphql".to_string(),
                 "/api/auth/callback".to_string(),
                 "/api/chat".to_string(),
                 "/api/upload".to_string(),
                 "/api/search".to_string(),
                 "/api/admin/settings".to_string(),
-                "/_rsc/__PAGE__".to_string(),
                 "/dashboard".to_string(),
             ],
         }
@@ -1081,10 +1117,39 @@ impl HoneypotEngine {
                     self.state.attack_events.drain(0..1000);
                 }
             }
+        } else if self.config.log_all_requests {
+            // Log clean requests too if configured
+            let event = AttackEvent {
+                event_id: Self::generate_event_id(),
+                timestamp: Utc::now().to_rfc3339(),
+                category: "clean".to_string(),
+                subcategory: "passive".to_string(),
+                matched_payload: String::new(),
+                full_payload: String::new(),
+                method: req.method.clone(),
+                path: req.path.clone(),
+                severity: Severity::Info,
+                mitre_id: None,
+                simulated_response: 200,
+                attacker_ip: req.ip.clone(),
+                user_agent: req.headers.get("user-agent").cloned().unwrap_or_default(),
+                headers: req.headers.clone(),
+                session_id: Some(profile_id.clone()),
+                confidence: 0.0,
+            };
+            self.state.attack_events.push(event);
+            if self.state.attack_events.len() > 10000 {
+                self.state.attack_events.drain(0..1000);
+            }
         }
 
         // Update or create attacker profile
         self.update_attacker_profile(req, &profile_id, &detections);
+
+        // Evict stale profiles periodically (keep top 5000)
+        if self.state.attacker_profiles.len() > 10000 {
+            self.evict_profiles();
+        }
 
         // Generate simulated response
         let simulated_status = self.simulate_status(&detections);
@@ -1107,7 +1172,7 @@ impl HoneypotEngine {
     fn detect_attacks(&mut self, req: &RawRequest, profile_id: &str) -> Vec<AttackEvent> {
         let mut events = Vec::new();
 
-        for vector in attack_vectors().iter() {
+        for vector in compiled_vectors().iter() {
             let search_text = match vector.search_location {
                 "body" => &req.body,
                 "query" => &req.query_string,
@@ -1131,40 +1196,38 @@ impl HoneypotEngine {
                 }
             }
 
-            for pattern in vector.patterns {
-                if let Ok(re) = Regex::new(pattern) {
-                    if let Some(m) = re.find(search_text) {
-                        let matched = m.as_str().to_string();
-                        let confidence = self.calculate_confidence(vector, &matched, search_text);
+            for re in &vector.patterns {
+                if let Some(m) = re.find(search_text) {
+                    let matched = m.as_str().to_string();
+                    let confidence = self.calculate_confidence(vector, &matched, search_text);
 
-                        if confidence >= self.config.detection_threshold {
-                            events.push(AttackEvent {
-                                event_id: Self::generate_event_id(),
-                                timestamp: Utc::now().to_rfc3339(),
-                                category: vector.category.to_string(),
-                                subcategory: vector.subcategory.to_string(),
-                                matched_payload: Self::truncate_str(&matched, 500),
-                                full_payload: Self::truncate_str(
-                                    search_text,
-                                    self.config.max_payload_store,
-                                ),
-                                method: req.method.clone(),
-                                path: req.path.clone(),
-                                severity: vector.severity.clone(),
-                                mitre_id: Some(vector.mitre_id.to_string()),
-                                simulated_response: 0, // Filled later
-                                attacker_ip: req.ip.clone(),
-                                user_agent: req
-                                    .headers
-                                    .get("user-agent")
-                                    .cloned()
-                                    .unwrap_or_default(),
-                                headers: req.headers.clone(),
-                                session_id: Some(profile_id.to_string()),
-                                confidence,
-                            });
-                            break; // One match per vector category is enough
-                        }
+                    if confidence >= self.config.detection_threshold {
+                        events.push(AttackEvent {
+                            event_id: Self::generate_event_id(),
+                            timestamp: Utc::now().to_rfc3339(),
+                            category: vector.category.to_string(),
+                            subcategory: vector.subcategory.to_string(),
+                            matched_payload: Self::truncate_str(&matched, 500),
+                            full_payload: Self::truncate_str(
+                                search_text,
+                                self.config.max_payload_store,
+                            ),
+                            method: req.method.clone(),
+                            path: req.path.clone(),
+                            severity: vector.severity.clone(),
+                            mitre_id: Some(vector.mitre_id.to_string()),
+                            simulated_response: 0, // Filled later
+                            attacker_ip: req.ip.clone(),
+                            user_agent: req
+                                .headers
+                                .get("user-agent")
+                                .cloned()
+                                .unwrap_or_default(),
+                            headers: req.headers.clone(),
+                            session_id: Some(profile_id.to_string()),
+                            confidence,
+                        });
+                        break; // One match per vector category is enough
                     }
                 }
             }
@@ -1181,7 +1244,7 @@ impl HoneypotEngine {
     /// Calculate detection confidence based on pattern specificity and context.
     fn calculate_confidence(
         &self,
-        _vector: &AttackVector,
+        _vector: &CompiledVector,
         matched: &str,
         full_text: &str,
     ) -> f64 {
@@ -1259,28 +1322,40 @@ impl HoneypotEngine {
         }
     }
 
+    /// Check whether a request targets an RSC endpoint.
+    fn is_rsc_request(&self, req: &RawRequest) -> bool {
+        self.rsc_endpoints.iter().any(|ep| req.path.starts_with(ep))
+            || req
+                .headers
+                .get("content-type")
+                .map(|ct| ct.contains("text/x-component"))
+                .unwrap_or(false)
+            || req.headers.contains_key("next-action")
+    }
+
     /// Generate a realistic fake response body.
     fn simulate_body(&self, req: &RawRequest, _detections: &[AttackEvent]) -> String {
         if !self.config.fake_rsc_responses {
             return String::new();
         }
 
-        // RSC endpoints get realistic Flight-protocol responses
-        let is_rsc = self.rsc_endpoints.iter().any(|ep| req.path.starts_with(ep))
-            || req
-                .headers
-                .get("content-type")
-                .map(|ct| ct.contains("text/x-component"))
-                .unwrap_or(false)
-            || req.headers.contains_key("next-action");
-
-        if is_rsc {
+        let is_rsc = self.is_rsc_request(req);
+        let mut body = if is_rsc {
             self.generate_fake_rsc_response(req)
         } else if req.path.contains("/api/") {
             self.generate_fake_api_response(req)
         } else {
             self.generate_fake_html_response(req)
+        };
+
+        // Progressive sizing: pad response with irrelevant data to simulate
+        // a real app's variable response sizes and keep attackers engaged
+        if self.config.progressive_sizing {
+            let extra_bytes = 128 + (Utc::now().timestamp_millis() as usize % 1024);
+            body.push_str(&" ".repeat(extra_bytes / 32));
         }
+
+        body
     }
 
     /// Generate a fake React Server Components Flight-protocol response.
@@ -1321,12 +1396,7 @@ impl HoneypotEngine {
     }
 
     fn simulate_content_type(&self, req: &RawRequest) -> String {
-        let is_rsc = req.headers.contains_key("next-action")
-            || req
-                .headers
-                .get("content-type")
-                .map(|ct| ct.contains("text/x-component"))
-                .unwrap_or(false);
+        let is_rsc = self.is_rsc_request(req);
 
         if is_rsc {
             "text/x-component; charset=utf-8".to_string()
@@ -1494,6 +1564,27 @@ impl HoneypotEngine {
             // Calculate risk score (0-100)
             profile.risk_score = Self::calculate_risk_score(profile);
         }
+    }
+
+    /// Evict low-activity profiles to prevent unbounded memory growth.
+    /// Keeps the top 5000 profiles sorted by risk_score (descending).
+    fn evict_profiles(&mut self) {
+        let mut sorted: Vec<(String, f64)> = self
+            .state
+            .attacker_profiles
+            .iter()
+            .map(|(id, p)| (id.clone(), p.risk_score))
+            .collect();
+        sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        let keep_ids: std::collections::HashSet<String> = sorted
+            .iter()
+            .take(5000)
+            .map(|(id, _)| id.clone())
+            .collect();
+        self.state
+            .attacker_profiles
+            .retain(|id, _| keep_ids.contains(id));
+        self.state.unique_attackers = self.state.attacker_profiles.len();
     }
 
     /// Calculate a cumulative risk score for an attacker profile.
