@@ -151,3 +151,26 @@ pub struct RceResult {
 3. **Attempt PoC Write:** Generates a dynamically timestamped `echo` command to write a text file to `/tmp/react2shell_pwned.txt` and immediately `cat` it to read it back.
 4. **Verify PoC:** Checks if the PoC command's exit code was `0` and if the output explicitly contained the expected filename.
 5. **Return Result:** Returns an `RceResult` indicating whether any command succeeded, whether the PoC was successfully created, and the full list of command outputs.
+
+---
+
+## 4. Attack Surface & Exploitation Vectors (CVE-2025-55182 / CVE-2025-55183)
+
+### Where Do We Attack?
+The vulnerability resides deep within the **React Server Components (RSC)** parsing logic—specifically, how the "Flight protocol" insecurely deserializes incoming component payloads. 
+We attack the backend endpoints that process Server Actions or RSC renders. In a typical Next.js App Router application, this means targeting Application routes or API routes that accept and process these Flight payloads.
+
+### Do We Have to Detect ALL POST Requests?
+No, it is not strictly necessary to monitor or detect *every* `POST` request across the site. We are specifically hunting for endpoints that interact with the RSC architecture. 
+However, because Next.js handles Server Actions on the exact same URLs as the web pages themselves, virtually **any valid URL on a Next.js App Router site can act as an attack vector**. An attacker does not need to find a specific "API endpoint"; they can simply take a valid page URL, append the correct RSC headers, and send a `POST` request. The internal Next.js router intercepts these headers and routes the malicious payload directly to the vulnerable deserializer.
+
+### Which POST Requests are Exploitable?
+A `POST` request becomes an exploitable vector if the following conditions are met:
+1. **Vulnerable Environment:** The target application is running a vulnerable combination of Next.js and React (e.g., Next.js 15.x paired with React 19).
+2. **App Router Active:** The application utilizes the Next.js App Router architecture, meaning RSC is actively enabled.
+3. **Flight Protocol Headers:** The request must explicitly instruct the server to engage the Flight parser. This is achieved by including specific headers such as:
+   - `Content-Type: text/x-component`
+   - `Next-Action: <action_id>` (Even a fabricated, random, or generic Action ID is sufficient to trigger the initial deserialization phase *before* the action ID validation even occurs).
+   - `RSC: 1`
+
+When the backend attempts to parse a heavily nested or maliciously crafted JSON-like Flight payload (abusing internal handlers like the `blob_handler`), the insecure deserialization vulnerability is triggered. This forces the server to execute arbitrary code (RCE) or leak source files before any standard input validation can block it.
