@@ -169,3 +169,7 @@ pub mod api_security_scanner;
 #[cfg(feature = "geo-analysis")]
 #[cfg_attr(docsrs, doc(cfg(feature = "geo-analysis")))]
 pub mod geo_analysis;
+
+#[cfg(feature = "react2shell")]
+#[cfg_attr(docsrs, doc(cfg(feature = "react2shell")))]
+pub mod react;
