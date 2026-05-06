@@ -242,11 +242,11 @@ const SECRET_PATTERNS: &[(&str, &str)] = &[
     ("Firebase URL", r"https://[a-z0-9\-]+\.firebaseio\.com"),
     ("Slack Webhook", r"https://hooks\.slack\.com/services/T[a-zA-Z0-9_]+/B[a-zA-Z0-9_]+/[a-zA-Z0-9_]+"),
     ("AWS Access Key", r"AKIA[0-9A-Z]{16}"),
-    ("AWS Secret Key", r"secret_?key\s*[:=]\s*['\"][0-9a-zA-Z/+]{40}['\"]"),
+    ("AWS Secret Key", r#"secret_?key\s*[:=]\s*['\"][0-9a-zA-Z/+]{40}['\"]"#),
     ("JWT Token", r"ey[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*"),
     ("GitHub Token", r"gh[oprs]_[a-zA-Z0-9]{36,}"),
     ("Discord Webhook", r"https://discord\.com/api/webhooks/[0-9]+/[a-zA-Z0-9\-]+"),
-    ("Generic API Key", r"(?:api_?key|auth_?token|access_?token)\s*[:=]\s*['\"][0-9a-zA-Z\-_]{16,}['\"]"),
+    ("Generic API Key", r#"(?:api_?key|auth_?token|access_?token)\s*[:=]\s*['\"][0-9a-zA-Z\-_]{16,}['\"]"#),
 ];
 
 /// Sensitive data extraction patterns for source leak analysis.
@@ -271,18 +271,19 @@ const JS_PRIORITY_KEYWORDS: &[&str] = &[
 struct Color;
 
 impl Color {
-    const RED: &'static str = "\x1b[91m";
-    const GREEN: &'static str = "\x1b[92m";
-    const YELLOW: &'static str = "\x1b[93m";
-    const BLUE: &'static str = "\x1b[94m";
-    const MAGENTA: &'static str = "\x1b[95m";
-    const CYAN: &'static str = "\x1b[96m";
-    const WHITE: &'static str = "\x1b[97m";
-    const BOLD: &'static str = "\x1b[1m";
-    const DIM: &'static str = "\x1b[2m";
-    const RESET: &'static str = "\x1b[0m";
-    const BG_RED: &'static str = "\x1b[41m";
-    const BG_GREEN: &'static str = "\x1b[42m";
+    pub const RED: &'static str = "\x1b[91m";
+    pub const GREEN: &'static str = "\x1b[92m";
+    pub const YELLOW: &'static str = "\x1b[93m";
+    #[allow(dead_code)]
+    pub const BLUE: &'static str = "\x1b[94m";
+    pub const MAGENTA: &'static str = "\x1b[95m";
+    pub const CYAN: &'static str = "\x1b[96m";
+    pub const WHITE: &'static str = "\x1b[97m";
+    pub const BOLD: &'static str = "\x1b[1m";
+    pub const DIM: &'static str = "\x1b[2m";
+    pub const RESET: &'static str = "\x1b[0m";
+    pub const BG_RED: &'static str = "\x1b[41m";
+    pub const BG_GREEN: &'static str = "\x1b[42m";
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

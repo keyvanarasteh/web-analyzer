@@ -15,7 +15,7 @@ default = [
     "domain-info", "domain-dns", "seo-analysis", "web-technologies", "domain-validator",
     "subdomain-discovery", "contact-spy", "advanced-content-scanner",
     "security-analysis", "subdomain-takeover", "cloudflare-bypass",
-    "nmap-zero-day", "api-security-scanner", "geo-analysis",
+    "nmap-zero-day", "api-security-scanner", "geo-analysis", "react2shell",
 ]
 
 # Intelligence Gathering (Mobile Native Versions)
@@ -46,6 +46,7 @@ cloudflare-bypass = []
 nmap-zero-day = []
 api-security-scanner = []
 geo-analysis = []
+react2shell = []
 
 [dependencies]
 chrono = "0.4"
