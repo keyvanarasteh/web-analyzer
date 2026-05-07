@@ -259,6 +259,28 @@ web-analyzer/
 └── tests/                            # Integration tests
 ```
 
+## 🤝 OpenSource World Help Requests (Ideas & Features)
+
+We are actively looking for contributors to help expand the engine into an enterprise-grade OSINT and exploitation framework. If you are a Rust developer or security researcher, please consider contributing to the following planned features:
+
+| Feature Name | Description | Request Document |
+|--------------|-------------|------------------|
+| **Shodan & Censys Integration** | Passive reconnaissance via external IoT search engines | [Read Request](./docs/ideas/shodan_censys_integration.md) |
+| **Cloud Bucket Enumerator** | Brute-force exposed S3, Azure, and GCP storage buckets | [Read Request](./docs/ideas/cloud_bucket_enumerator.md) |
+| **GitHub Secrets Dumper** | Automated dorking for exposed organization credentials | [Read Request](./docs/ideas/github_secrets_dumper.md) |
+| **Archival Data Miner** | Extract forgotten endpoints using Wayback Machine & OTX | [Read Request](./docs/ideas/archival_data_miner.md) |
+| **Dark Web Leak Monitor** | Cross-reference domain emails against known credential breaches | [Read Request](./docs/ideas/dark_web_leak_monitor.md) |
+| **CT Log Subdomain Monitor** | Real-time infrastructure discovery via Certificate Transparency logs | [Read Request](./docs/ideas/ct_log_subdomain_monitor.md) |
+| **JS Source Map Extractor** | Decompile `.js.map` files to extract raw source code and secrets | [Read Request](./docs/ideas/js_source_map_extractor.md) |
+| **Web Cache Vulnerability Scanner** | Detect Web Cache Deception & Poisoning misconfigurations | [Read Request](./docs/ideas/web_cache_vulnerability_scanner.md) |
+| **WAF Evasion & Smuggling Tester** | Automate HTTP Request Smuggling and path obfuscation vectors | [Read Request](./docs/ideas/waf_evasion_smuggling_tester.md) |
+| **BGP Route Leak Monitor** | Analyze ASN announcements for hijacking and routing anomalies | [Read Request](./docs/ideas/bgp_route_leak_monitor.md) |
+| **GraphQL Introspection Fuzzer** | Dump full API schemas and fuzz variables for IDOR mutations | [Read Request](./docs/ideas/graphql_introspection_fuzzer.md) |
+| **WebSocket Vulnerability Analyzer** | Hook into WSS streams to test for Cross-Site WebSocket Hijacking | [Read Request](./docs/ideas/websocket_vulnerability_analyzer.md) |
+| **Supply Chain Dependency Auditor** | Hunt for Dependency Confusion vulns via leaked `package.json` | [Read Request](./docs/ideas/supply_chain_dependency_auditor.md) |
+| **Mobile API Endpoint Extractor** | Parse raw APK DEX strings to uncover hidden staging API URLs | [Read Request](./docs/ideas/mobile_api_extractor.md) |
+| **Active Directory Exposure Scanner** | Extract internal NetBIOS/Domain names via NTLM HTTP Challenges | [Read Request](./docs/ideas/active_directory_exposure_scanner.md) |
+
 ---
 
 ## 📊 Stats
