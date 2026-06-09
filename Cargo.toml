@@ -1,77 +1,11 @@
 [package]
-name = "web-analyzer"
-version = "0.1.10"
+name = "github_secrets_dumper"
+version = "0.1.0"
 edition = "2021"
-description = "Enterprise domain security & intelligence platform — WHOIS, DNS, SEO, tech detection, subdomain takeover, API security scanning, and more"
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/keyvanarasteh/web-analyzer"
-homepage = "https://github.com/keyvanarasteh/web-analyzer"
-documentation = "https://docs.rs/web-analyzer"
-keywords = ["security", "dns", "whois", "web-security", "penetration-testing"]
-categories = ["web-programming", "network-programming"]
-
-[features]
-default = [
-    "domain-info", "domain-dns", "seo-analysis", "web-technologies", "domain-validator",
-    "subdomain-discovery", "contact-spy", "advanced-content-scanner",
-    "security-analysis", "subdomain-takeover", "cloudflare-bypass",
-    "nmap-zero-day", "api-security-scanner", "geo-analysis", "react2shell", "react-honeypot",
-]
-
-# Intelligence Gathering (Mobile Native Versions)
-domain-info-mobile = ["hickory-resolver", "x509-parser", "rustls"]
-domain-dns-mobile = ["hickory-resolver"]
-domain-validator-mobile = ["hickory-resolver", "x509-parser", "rustls"]
-
-# Security Assessment (Mobile Native Versions)
-security-analysis-mobile = ["x509-parser", "rustls"]
-subdomain-takeover-mobile = ["hickory-resolver"]
-
-# Intelligence Gathering
-domain-info = []
-domain-dns = []
-seo-analysis = []
-web-technologies = []
-domain-validator = []
-
-# Reconnaissance
-subdomain-discovery = []
-contact-spy = []
-advanced-content-scanner = []
-
-# Security Assessment
-security-analysis = []
-subdomain-takeover = []
-cloudflare-bypass = []
-nmap-zero-day = []
-api-security-scanner = []
-geo-analysis = []
-react2shell = []
-react-honeypot = []
 
 [dependencies]
-chrono = "0.4"
-regex = "1.12"
-reqwest = { version = "0.13", features = ["json", "rustls"] }
-scraper = "0.26"
+tokio = { version = "1.35", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-thiserror = "2.0"
-tokio = { version = "1.50", features = ["full"] }
-tracing = "0.1"
-urlencoding = "2.1"
-
-# Pure Rust Mobile Dependencies (Optional)
-hickory-resolver = { version = "0.24.1", optional = true }
-x509-parser = { version = "0.16.0", optional = true }
-rustls = { version = "0.23.13", optional = true }
-
-[dev-dependencies]
-tokio = { version = "1.50", features = ["full", "macros", "rt-multi-thread"] }
-
-[lints.rust]
-unsafe_code = "forbid"
-
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+regex = "1.10"
+env_logger = "0.10"
