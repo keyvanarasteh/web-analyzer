@@ -10,7 +10,7 @@ async fn main() {
         Ok(t) => t,
         Err(_) => {
             println!("[!] HATA: GITHUB_TOKEN tanımlanmamış!");
-            return;
+            std::process::exit(1); // 🌟 return; yerine bunu yazdık
         }
     };
 
