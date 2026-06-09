@@ -14,11 +14,16 @@ async fn main() {
         }
     };
 
-    // 🎯 BURAYA TARAMAK İSTEDİĞİN KİŞİNİN KULLANICI ADINI YAZABİLİRSİN
-    let target_user = "hedef_kullanici_adi"; 
-
-    let scanner = repo_scanner::RepoScanner::new(&token);
-    let sonuclar = scanner.run(target_user).await;
+// Hedef kullanıcı adını komut satırı argümanlarından al
+// Örnek kullanım: cargo run -- hedef_kullanici_adi
+let target_user = match std::env::args().nth(1) {
+    Some(arg) if !arg.trim().is_empty() => arg,
+    _ => {
+        println!("[!] HATA: Hedef kullanıcı adı belirtilmedi.");
+        println!("[*] Kullanım: cargo run -- <github_kullanici_adi>");
+        std::process::exit(1);
+    }
+};
 
     println!("\n=================== OPERASYON RAPORU ===================");
     println!("[+] Tarama Tamamlandı.");
