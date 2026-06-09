@@ -78,7 +78,7 @@ impl RepoScanner {
         RepoScanner { client }
     }
 
-    /// GitHub API istek sınırı (Rate Limit) korumalı arama fonksiyonu
+    /// 🌟 BOTUN EN SON İSTEDİĞİ: DETAYLI LOG VE AKILLI RETRY-AFTER DESTEKLİ MOTOR
     pub async fn execute_search_with_retry(&self, query: &str) -> Option<SearchResult> {
         let url = "https://api.github.com/search/code";
         let mut current_delay = Duration::from_secs(3);
@@ -102,22 +102,34 @@ impl RepoScanner {
                             .map(Duration::from_secs);
 
                         let delay = retry_after.unwrap_or(current_delay);
+                        println!("[!] GitHub İstek Sınırı! {} saniye bekleniyor... (Deneme: {})", delay.as_secs(), attempt);
                         sleep(delay).await;
                         current_delay *= 2;
                         continue;
                     }
+
+                    // Botun istediği detaylı son deneme log mekanizması
+                    let body = resp.text().await.unwrap_or_default();
+                    if attempt == 3 {
+                        let truncated_body: String = body.chars().take(512).collect();
+                        eprintln!("GitHub code search failed with status {} on attempt {}: {}", status, attempt, truncated_body);
+                    }
                     break;
                 }
-                Err(_) => {
-                    sleep(current_delay).await;
-                    current_delay *= 2;
+                Err(err) => {
+                    if attempt == 3 {
+                        eprintln!("GitHub code search request errored on attempt {}: {}", attempt, err);
+                    } else {
+                        sleep(current_delay).await;
+                        current_delay *= 2;
+                    }
                 }
             }
         }
         None
     }
 
-    /// 🌟 1. RESMİN ÇÖZÜMÜ: TÜM DEPOLARI KAÇIRMADAN ÇEKEN SAYFALAMALI (PAGINATION) SİSTEM
+    /// Tüm depoları kaçırmadan çeken sayfalamalı (Pagination) sistem
     async fn get_user_repositories(&self, target_user: &str) -> Vec<String> {
         let mut all_repos = Vec::new();
         let mut page = 1;
@@ -133,7 +145,7 @@ impl RepoScanner {
                 if resp.status().is_success() {
                     if let Ok(repos) = resp.json::<Vec<RepoResponse>>().await {
                         if repos.is_empty() {
-                            break; // Artık yeni depo kalmadıysa döngüden çık
+                            break;
                         }
                         for r in repos {
                             all_repos.push(r.name);
@@ -148,7 +160,7 @@ impl RepoScanner {
         all_repos
     }
 
-    /// Dinamik dal algılamalı ham dosya indirme fonksiyonu
+    /// 🌟 BOTUN EN SON İSTEDİĞİ: DİNAMİK DAL (BRANCH) ALGILAMALI DOSYA MOTORU
     pub async fn fetch_raw_file(&self, repo: &str, path: &str) -> Option<String> {
         let api_url = format!("https://api.github.com/repos/{}", repo);
         let mut target_branch = String::from("main");
@@ -170,7 +182,7 @@ impl RepoScanner {
         None
     }
 
-    /// Mock içerik analiz fonksiyonu (Sızıntı imzalarını denetler)
+    /// İçerik analiz fonksiyonu
     fn analyse_content(&self, content: &str, repo: &str, path: &str) -> Vec<LeakResult> {
         let mut leaks = Vec::new();
         if content.contains("secret") || content.contains("password") {
@@ -184,12 +196,11 @@ impl RepoScanner {
         leaks
     }
 
-    /// 🌟 2. RESMİN ÇÖZÜMÜ: SAF TARAMA (SCAN) VE HASHSET DUPLICATE ENGELLEME LOJİĞİ
+    /// Saf tarama (Scan) ve HashSet duplicate engelleme lojiği
     pub async fn scan(&self, target_user: &str) -> Vec<LeakResult> {
         let mut all_leaks = Vec::new();
-        let mut seen_keys = HashSet::new(); // Mükerrer taramayı önleyen küme
+        let mut seen_keys = HashSet::new();
 
-        // Aşama A: Global Dork Aramaları
         let dork_query = format!("user:{} secret", target_user);
         if let Some(search_result) = self.execute_search_with_retry(&dork_query).await {
             for item in search_result.items {
@@ -207,7 +218,6 @@ impl RepoScanner {
             }
         }
 
-        // Aşama B: Tüm Repolarda Kritik Konfigürasyon Taraması (Sayfalamalı Güvenli Alan)
         let repos = self.get_user_repositories(target_user).await;
         let critical_files = vec![".env", "config.json", "database.yml", "srv/config.js", "README.md"];
 
@@ -215,7 +225,6 @@ impl RepoScanner {
             let full_repo_name = format!("{}/{}", target_user, repo);
             for file_path in &critical_files {
                 let key = (full_repo_name.clone(), file_path.to_string());
-                // Eğer bu dosya global dork aşamasında zaten tarandıysa pas geç (O(1) Hız)
                 if seen_keys.contains(&key) {
                     continue;
                 }
@@ -233,7 +242,7 @@ impl RepoScanner {
         all_leaks
     }
 
-    /// 🌟 2. RESMİN ÇÖZÜMÜ: SADECE SUNUM VE FORMATLI ÇIKTIYLA İLGİLENEN RUN FONKSİYONU
+    /// Sunum ve formatlı çıktı fonksiyonu
     pub async fn run(&self, target_user: &str) {
         println!("[*] AŞAMA 1: Global Endeks Araması Başlatılıyor...");
         println!("[*] AŞAMA 2: Derinlemesine Konfigürasyon Dosyaları Taranıyor...");
