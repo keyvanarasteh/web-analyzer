@@ -45,7 +45,15 @@ impl RepoScanner {
         // Terminalden gelen çift tırnak (") ve tek tırnak (') işaretlerini tamamen temizler
         let clean_token = github_token.trim().trim_matches('"').trim_matches('\'');
         let auth_header_value = format!("Bearer {}", clean_token);
-        headers.insert(AUTHORIZATION, HeaderValue::from_str(&auth_header_value).unwrap());
+        // Token içinde geçersiz karakter varsa programın çökmesini (panic) engeller, temiz çıkış yapar
+        let auth_value = match HeaderValue::from_str(&auth_header_value) {
+            Ok(val) => val,
+            Err(_) => {
+                println!("[!] HATA: GITHUB_TOKEN geçersiz karakterler içeriyor (ASCII formatında olmalıdır)!");
+                std::process::exit(1);
+            }
+        };
+        headers.insert(AUTHORIZATION, auth_value);
 
         let client = reqwest::Client::builder()
             .default_headers(headers)
