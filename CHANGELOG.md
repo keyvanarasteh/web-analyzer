@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.11] - 2026-07-06
+
+### Added
+- **Progress Sender Coverage**: Added `ScanProgress` streaming support to WebQ-facing reconnaissance modules, including Web Technologies, Contact Spy, Advanced Content Scanner, Cloudflare Bypass, and Bulk Domain Validator per-domain progress.
+- **Shared HTTP Client Builder**: Added a centralized `http_client_builder()` that installs the Rustls provider once for non-Android targets.
+- **Documentation Index Refresh**: Updated the docs index for the current module set, feature flags, React security modules, and progress event support.
+
+### Changed
+- **Android CI Compatibility**: Switched `reqwest` to `rustls-no-provider` and made the Rustls `ring` provider target-aware so `cargo check --all-features --target aarch64-linux-android` passes without requiring an Android NDK compiler.
+- **CI Repair**: Fixed rustfmt output, clippy warnings, and integration test assumptions that surfaced after progress sender updates.
+- **Dependency Graph Cleanup**: Removed AWS-LC from the all-features dependency graph used by CI.
+
+### Fixed
+- **Subdomain Discovery Test**: Updated the test call to pass the optional progress sender argument.
+- **Domain Info Test Stability**: Relaxed DNS IP assertions to handle resolvers that return IPv4 without IPv6.
+- **Domain DNS Test Warning**: Removed a useless unsigned comparison caught by clippy.
+
+## [0.1.10] - 2026-07-06
+
+### Added
+- **React2Shell Module**: Added React/Next.js reconnaissance, version checks, source leak inspection, DoS/RCE helper flows, and report generation helpers.
+- **React Honeypot Module**: Added React-focused request detection, attacker profiling, honeypot responses, and JSON export support.
+
 ## [0.1.9] - 2026-04-16
 
 ### Added
@@ -44,5 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration tests for all modules
 - 3 runnable examples: `domain_info`, `security_scan`, `full_audit`
 
+[0.1.11]: https://github.com/keyvanarasteh/web-analyzer/releases/tag/v0.1.11
+[0.1.10]: https://github.com/keyvanarasteh/web-analyzer/releases/tag/v0.1.10
+[0.1.9]: https://github.com/keyvanarasteh/web-analyzer/releases/tag/v0.1.9
 [0.1.8]: https://github.com/keyvanarasteh/web-analyzer/releases/tag/v0.1.8
 [0.1.0]: https://github.com/keyvanarasteh/web-analyzer/releases/tag/v0.1.0

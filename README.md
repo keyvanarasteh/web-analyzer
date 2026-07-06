@@ -153,7 +153,7 @@ Include only what you need:
 
 ```toml
 [dependencies]
-web-analyzer = { version = "0.1.8", features = ["domain-info", "security-analysis"] }
+web-analyzer = { version = "0.1.11", features = ["domain-info", "security-analysis"] }
 ```
 
 <details>
