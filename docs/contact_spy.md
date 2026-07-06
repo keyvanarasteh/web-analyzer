@@ -77,7 +77,8 @@ Multi-page web crawler that discovers contact information — emails, phone numb
 ```rust
 pub async fn crawl_contacts(
     domain: &str,
-    max_pages: usize
+    max_pages: usize,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>
 ) -> Result<ContactSpyResult, Box<dyn std::error::Error + Send + Sync>>
 ```
 
@@ -85,6 +86,7 @@ pub async fn crawl_contacts(
 |-------|------|-------------|
 | `domain` | `&str` | Target domain. Accepts `example.com` or `https://example.com`. |
 | `max_pages` | `usize` | Maximum number of pages to crawl. |
+| `progress_tx` | `Option<Sender<ScanProgress>>` | Optional progress event channel. |
 
 ---
 
@@ -288,7 +290,7 @@ use web_analyzer::contact_spy::crawl_contacts;
 
 #[tokio::main]
 async fn main() {
-    let result = crawl_contacts("example.com", 10).await.unwrap();
+    let result = crawl_contacts("example.com", 10, None).await.unwrap();
 
     println!("Scanned {} pages", result.pages_scanned);
     println!("Emails: {:?}", result.emails);

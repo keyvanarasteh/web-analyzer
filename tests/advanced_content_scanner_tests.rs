@@ -3,7 +3,7 @@
 async fn test_scan_content() {
     use web_analyzer::advanced_content_scanner::scan_content;
 
-    let result = scan_content("example.com").await;
+    let result = scan_content("example.com", None).await;
     assert!(result.is_ok(), "Failed: {:?}", result.err());
 
     let info = result.unwrap();

@@ -25,7 +25,7 @@ async fn main() {
         get_dns_records(&domain, None),
         analyze_security(&domain, None),
         analyze_advanced_seo(&domain, None),
-        detect_web_technologies(&domain),
+        detect_web_technologies(&domain, None),
     );
 
     // Domain info

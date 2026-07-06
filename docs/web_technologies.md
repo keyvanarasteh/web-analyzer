@@ -88,7 +88,8 @@ Comprehensive web technology fingerprinting with security analysis. Detects 10 w
 
 ```rust
 pub async fn detect_web_technologies(
-    domain: &str
+    domain: &str,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>
 ) -> Result<WebTechResult, Box<dyn std::error::Error + Send + Sync>>
 ```
 
@@ -262,7 +263,7 @@ use web_analyzer::web_technologies::detect_web_technologies;
 
 #[tokio::main]
 async fn main() {
-    let result = detect_web_technologies("example.com").await.unwrap();
+    let result = detect_web_technologies("example.com", None).await.unwrap();
 
     println!("Server: {}", result.web_server);
     println!("Backend: {:?}", result.backend);

@@ -145,7 +145,7 @@ async fn main() {
     println!("Score: {}/100 ({})", security.security_score, security.grade);
 
     // Technology fingerprinting
-    let tech = detect_web_technologies(domain).await.unwrap();
+    let tech = detect_web_technologies(domain, None).await.unwrap();
     println!("Server: {}, CMS: {:?}", tech.web_server, tech.cms);
 }
 ```

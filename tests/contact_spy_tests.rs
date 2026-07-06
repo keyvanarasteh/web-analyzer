@@ -4,7 +4,7 @@ async fn test_contact_spy() {
     use web_analyzer::contact_spy::crawl_contacts;
 
     // We can use example.com, though it likely has no emails or social profiles
-    let result = crawl_contacts("example.com", 1).await;
+    let result = crawl_contacts("example.com", 1, None).await;
     assert!(
         result.is_ok(),
         "Failed to crawl contacts: {:?}",

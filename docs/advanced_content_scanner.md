@@ -147,7 +147,8 @@ advanced_content_scanner
 
 ```rust
 pub async fn scan_content(
-    domain: &str
+    domain: &str,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>
 ) -> Result<ScannerResult, Box<dyn std::error::Error + Send + Sync>>
 ```
 
@@ -156,6 +157,7 @@ pub async fn scan_content(
 | Param | Type | Description |
 |-------|------|-------------|
 | `domain` | `&str` | Target domain. Accepts bare domain (`example.com`) or full URL (`https://example.com`). If no scheme is provided, `https://` is prepended. |
+| `progress_tx` | `Option<Sender<ScanProgress>>` | Optional progress event channel. |
 
 **Returns:** `Result<ScannerResult, Error>` — Full scan results or an error.
 
@@ -613,7 +615,7 @@ use web_analyzer::advanced_content_scanner::scan_content;
 
 #[tokio::main]
 async fn main() {
-    let result = scan_content("example.com").await.unwrap();
+    let result = scan_content("example.com", None).await.unwrap();
 
     println!("Crawled {} pages, found {} JS files",
         result.summary.total_urls_crawled,

@@ -155,9 +155,16 @@ pub async fn validate_domain(domain: &str) -> ValidationResult {
 pub async fn validate_domains_bulk(
     domains: &[String],
     max_concurrency: usize,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> BulkValidationResult {
     let start = Instant::now();
     let total = domains.len();
+    report_progress(
+        &progress_tx,
+        5.0,
+        format!("Starting validation for {} domain(s)", total),
+        "Info",
+    );
 
     let client = Client::builder()
         .timeout(Duration::from_secs(10))
@@ -170,6 +177,7 @@ pub async fn validate_domains_bulk(
 
     let stats = Arc::new(AtomicStats::new());
     let semaphore = Arc::new(tokio::sync::Semaphore::new(max_concurrency));
+    let completed = Arc::new(AtomicUsize::new(0));
 
     let mut handles = Vec::with_capacity(total);
 
@@ -178,6 +186,8 @@ pub async fn validate_domains_bulk(
         let domain = domain.clone();
         let stats = Arc::clone(&stats);
         let sem = Arc::clone(&semaphore);
+        let completed = Arc::clone(&completed);
+        let progress_tx = progress_tx.clone();
 
         handles.push(tokio::spawn(async move {
             let _permit = sem.acquire().await.unwrap();
@@ -201,6 +211,28 @@ pub async fn validate_domains_bulk(
                 }
             }
 
+            let done = completed.fetch_add(1, Ordering::Relaxed) + 1;
+            let percentage = if total > 0 {
+                5.0 + (90.0 * (done as f32 / total as f32))
+            } else {
+                95.0
+            };
+            let status = if result.skip_reason.is_some() {
+                "Info"
+            } else if result.valid {
+                "Success"
+            } else {
+                "Error"
+            };
+            let message = if let Some(reason) = &result.skip_reason {
+                format!("Skipped {}: {}", domain, reason)
+            } else if result.valid {
+                format!("Validated {}", domain)
+            } else {
+                format!("Validation failed for {}", domain)
+            };
+            report_progress(&progress_tx, percentage, message, status);
+
             result
         }));
     }
@@ -221,6 +253,13 @@ pub async fn validate_domains_bulk(
         .filter(|r| r.valid)
         .map(|r| r.domain.clone())
         .collect();
+
+    report_progress(
+        &progress_tx,
+        100.0,
+        format!("Bulk validation complete: {} valid of {}", valid_count, total),
+        "Success",
+    );
 
     BulkValidationResult {
         stats: ValidationStats {
@@ -245,6 +284,22 @@ pub async fn validate_domains_bulk(
         },
         valid_domains,
         results,
+    }
+}
+
+fn report_progress(
+    progress_tx: &Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
+    percentage: f32,
+    message: impl Into<String>,
+    status: &str,
+) {
+    if let Some(tx) = progress_tx {
+        let _ = tx.try_send(crate::ScanProgress {
+            module: "Domain Validator".into(),
+            percentage,
+            message: message.into(),
+            status: status.into(),
+        });
     }
 }
 

@@ -135,7 +135,7 @@ async fn main() {
     println!("Grade: {} ({}/100)", security.grade, security.security_score);
 
     // Technology fingerprinting
-    let tech = detect_web_technologies(domain).await.unwrap();
+    let tech = detect_web_technologies(domain, None).await.unwrap();
     println!("Server: {} | CMS: {:?}", tech.web_server, tech.cms);
 
     // Subdomain takeover check

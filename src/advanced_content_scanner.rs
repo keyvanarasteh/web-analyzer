@@ -496,7 +496,15 @@ const SSRF_PARAMS: &[&str] = &[
 
 pub async fn scan_content(
     domain: &str,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<ScannerResult, Box<dyn std::error::Error + Send + Sync>> {
+    report_progress(
+        &progress_tx,
+        5.0,
+        format!("Preparing advanced content scan for {}", domain),
+        "Info",
+    );
+
     let base_url = if domain.starts_with("http") {
         domain.to_string()
     } else {
@@ -519,6 +527,13 @@ pub async fn scan_content(
 
     let max_depth: u8 = 2;
     let max_pages: usize = 50;
+
+    report_progress(
+        &progress_tx,
+        10.0,
+        "Compiling detection patterns",
+        "Info",
+    );
 
     // Compile regex patterns once
     let secret_regexes: Vec<(&SecretPattern, Regex)> = SECRET_PATTERNS
@@ -563,6 +578,7 @@ pub async fn scan_content(
     // ── Parse robots.txt ─────────────────────────────────────────────
     let mut disallowed: Vec<String> = Vec::new();
     let robots_url = format!("{}/robots.txt", base_url.trim_end_matches('/'));
+    report_progress(&progress_tx, 15.0, "Checking robots.txt", "Info");
     if let Ok(resp) = client.get(&robots_url).send().await {
         if resp.status().is_success() {
             if let Ok(body) = resp.text().await {
@@ -588,6 +604,7 @@ pub async fn scan_content(
 
     // ── Process sitemap.xml for seed URLs ─────────────────────────────
     let sitemap_url = format!("{}/sitemap.xml", base_url.trim_end_matches('/'));
+    report_progress(&progress_tx, 20.0, "Checking sitemap.xml for seed URLs", "Info");
     if let Ok(resp) = client.get(&sitemap_url).send().await {
         if resp.status().is_success() {
             if let Ok(body) = resp.text().await {
@@ -617,6 +634,13 @@ pub async fn scan_content(
         }
 
         visited.insert(url.clone());
+        let crawl_progress = 20.0 + (40.0 * (visited.len() as f32 / max_pages as f32)).min(40.0);
+        report_progress(
+            &progress_tx,
+            crawl_progress,
+            format!("Scanning page {}", url),
+            "Info",
+        );
 
         // Check URL parameters for SSRF-vulnerable names
         check_url_params_ssrf(&url, &mut ssrf_findings);
@@ -754,10 +778,17 @@ pub async fn scan_content(
     }
 
     // ── Fetch & analyze external JS files ────────────────────────────────
-    for js_url in &js_file_urls {
+    let total_js_files = js_file_urls.len().max(1);
+    for (index, js_url) in js_file_urls.iter().enumerate() {
         if visited.contains(js_url) {
             continue;
         }
+        report_progress(
+            &progress_tx,
+            65.0 + (15.0 * (index as f32 / total_js_files as f32)),
+            format!("Analyzing JavaScript asset {}", js_url),
+            "Info",
+        );
         if let Ok(resp) = client.get(js_url).send().await {
             if resp.status().is_success() {
                 if let Ok(js_body) = resp.text().await {
@@ -778,8 +809,15 @@ pub async fn scan_content(
 
     // ── Probe discovered API endpoints for SSRF ─────────────────────────
     let ssrf_probes = payloads::lines(payloads::SSRF);
-    for endpoint in api_endpoints.iter().take(20) {
+    let ssrf_limit = api_endpoints.len().min(20).max(1);
+    for (index, endpoint) in api_endpoints.iter().take(20).enumerate() {
         // limit to 20 to avoid flooding
+        report_progress(
+            &progress_tx,
+            85.0 + (10.0 * (index as f32 / ssrf_limit as f32)),
+            format!("Probing API endpoint {}", endpoint),
+            "Info",
+        );
         for probe in ssrf_probes.iter().take(5) {
             // top 5 probes per endpoint
             let test_url = format!("{}?url={}", endpoint, probe);
@@ -808,6 +846,7 @@ pub async fn scan_content(
     }
 
     // ── Deduplicate ─────────────────────────────────────────────────────
+    report_progress(&progress_tx, 98.0, "Deduplicating findings", "Info");
     dedup_secrets(&mut secrets);
     dedup_js_vulns(&mut js_vulns);
 
@@ -822,6 +861,16 @@ pub async fn scan_content(
         ssrf_vulnerabilities_count: ssrf_findings.len(),
     };
 
+    report_progress(
+        &progress_tx,
+        100.0,
+        format!(
+            "Advanced content scan complete: {} URL(s), {} JS file(s), {} API endpoint(s)",
+            summary.total_urls_crawled, summary.total_js_files, summary.total_api_endpoints
+        ),
+        "Success",
+    );
+
     Ok(ScannerResult {
         domain: domain.to_string(),
         secrets,
@@ -830,6 +879,22 @@ pub async fn scan_content(
         api_endpoints_discovered: api_list,
         summary,
     })
+}
+
+fn report_progress(
+    progress_tx: &Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
+    percentage: f32,
+    message: impl Into<String>,
+    status: &str,
+) {
+    if let Some(tx) = progress_tx {
+        let _ = tx.try_send(crate::ScanProgress {
+            module: "Advanced Content".into(),
+            percentage,
+            message: message.into(),
+            status: status.into(),
+        });
+    }
 }
 
 // ── Scanner sub-functions ───────────────────────────────────────────────────

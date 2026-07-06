@@ -87,7 +87,15 @@ const PHONE_FALSE_POSITIVES: &[&str] = &[
 pub async fn crawl_contacts(
     domain: &str,
     max_pages: usize,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<ContactSpyResult, Box<dyn std::error::Error + Send + Sync>> {
+    report_progress(
+        &progress_tx,
+        5.0,
+        format!("Preparing contact crawl for {}", domain),
+        "Info",
+    );
+
     let base_url = if domain.starts_with("http") {
         domain.to_string()
     } else {
@@ -125,6 +133,13 @@ pub async fn crawl_contacts(
     let mut visited: HashSet<String> = HashSet::new();
     let mut to_visit: Vec<String> = vec![base_url.clone()];
 
+    report_progress(
+        &progress_tx,
+        10.0,
+        format!("Starting BFS crawl with max {} page(s)", max_pages),
+        "Info",
+    );
+
     // ── BFS Crawl ───────────────────────────────────────────────────────
     while let Some(current_url) = to_visit.pop() {
         if visited.len() >= max_pages {
@@ -134,6 +149,17 @@ pub async fn crawl_contacts(
             continue;
         }
         visited.insert(current_url.clone());
+        let progress = if max_pages > 0 {
+            10.0 + (70.0 * (visited.len() as f32 / max_pages as f32)).min(70.0)
+        } else {
+            80.0
+        };
+        report_progress(
+            &progress_tx,
+            progress,
+            format!("Crawling {}", current_url),
+            "Info",
+        );
 
         let resp = match client.get(&current_url).send().await {
             Ok(r) if r.status().is_success() => r,
@@ -253,6 +279,13 @@ pub async fn crawl_contacts(
         }
     }
 
+    report_progress(
+        &progress_tx,
+        90.0,
+        "Grouping discovered social profiles",
+        "Info",
+    );
+
     // ── Group social by platform ────────────────────────────────────────
     let mut by_platform: HashMap<String, Vec<SocialProfile>> = HashMap::new();
     for profile in &all_social {
@@ -266,6 +299,16 @@ pub async fn crawl_contacts(
     let total_phones = all_phones.len();
     let total_social = all_social.len();
 
+    report_progress(
+        &progress_tx,
+        100.0,
+        format!(
+            "Contact crawl complete: {} email(s), {} phone(s), {} social profile(s)",
+            total_emails, total_phones, total_social
+        ),
+        "Success",
+    );
+
     Ok(ContactSpyResult {
         domain: clean_domain.to_string(),
         emails: all_emails.into_iter().collect(),
@@ -277,6 +320,22 @@ pub async fn crawl_contacts(
         total_phones,
         total_social_media: total_social,
     })
+}
+
+fn report_progress(
+    progress_tx: &Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
+    percentage: f32,
+    message: impl Into<String>,
+    status: &str,
+) {
+    if let Some(tx) = progress_tx {
+        let _ = tx.try_send(crate::ScanProgress {
+            module: "Contact Spy".into(),
+            percentage,
+            message: message.into(),
+            status: status.into(),
+        });
+    }
 }
 
 // ── Social media patterns ───────────────────────────────────────────────────

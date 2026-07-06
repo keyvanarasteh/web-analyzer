@@ -221,7 +221,15 @@ pub struct SecurityScoreResult {
 
 pub async fn detect_web_technologies(
     domain: &str,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<WebTechResult, Box<dyn std::error::Error + Send + Sync>> {
+    report_progress(
+        &progress_tx,
+        5.0,
+        format!("Preparing technology fingerprint for {}", domain),
+        "Info",
+    );
+
     let url = if domain.starts_with("http") {
         domain.to_string()
     } else {
@@ -234,9 +242,33 @@ pub async fn detect_web_technologies(
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
         .build()?;
 
-    let res = client.get(&url).send().await?;
+    report_progress(&progress_tx, 15.0, format!("Fetching {}", url), "Info");
+    let res = match client.get(&url).send().await {
+        Ok(res) => res,
+        Err(e) => {
+            report_progress(
+                &progress_tx,
+                100.0,
+                format!("Failed to fetch target: {}", e),
+                "Error",
+            );
+            return Err(Box::new(e));
+        }
+    };
     let headers = res.headers().clone();
-    let html_raw = res.text().await?;
+    report_progress(&progress_tx, 30.0, "Response received; reading HTML", "Success");
+    let html_raw = match res.text().await {
+        Ok(html) => html,
+        Err(e) => {
+            report_progress(
+                &progress_tx,
+                100.0,
+                format!("Failed to read response body: {}", e),
+                "Error",
+            );
+            return Err(Box::new(e));
+        }
+    };
     let html_lower = html_raw.to_lowercase();
 
     let base_domain = domain.replace("https://", "").replace("http://", "");
@@ -245,6 +277,13 @@ pub async fn detect_web_technologies(
     let server_hdr = get_header(&headers, "server");
     let powered_by = get_header(&headers, "x-powered-by").to_lowercase();
     let headers_str = format!("{:?}", headers).to_lowercase();
+
+    report_progress(
+        &progress_tx,
+        45.0,
+        "Parsing headers and HTML technology signatures",
+        "Info",
+    );
 
     // ── All Html-dependent (sync) work in a block so it drops before .await ──
     let (
@@ -324,8 +363,21 @@ pub async fn detect_web_technologies(
         )
     }; // `document` (Html) is dropped here — safe for async after this point
 
+    report_progress(
+        &progress_tx,
+        75.0,
+        "Core technology fingerprinting complete",
+        "Success",
+    );
+
     // 15. WordPress Analysis (async — no Html involved)
     let wordpress_analysis = if is_wordpress {
+        report_progress(
+            &progress_tx,
+            85.0,
+            "Running WordPress-specific checks",
+            "Info",
+        );
         Some(
             analyze_wordpress(
                 &client,
@@ -351,6 +403,13 @@ pub async fn detect_web_technologies(
         &wordpress_analysis,
     );
 
+    report_progress(
+        &progress_tx,
+        100.0,
+        "Technology fingerprint complete",
+        "Success",
+    );
+
     Ok(WebTechResult {
         domain: domain.to_string(),
         web_server,
@@ -371,6 +430,22 @@ pub async fn detect_web_technologies(
         wordpress_analysis,
         security_score,
     })
+}
+
+fn report_progress(
+    progress_tx: &Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
+    percentage: f32,
+    message: impl Into<String>,
+    status: &str,
+) {
+    if let Some(tx) = progress_tx {
+        let _ = tx.try_send(crate::ScanProgress {
+            module: "Web Technologies".into(),
+            percentage,
+            message: message.into(),
+            status: status.into(),
+        });
+    }
 }
 
 // ── 1. Web Server ───────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 async fn test_detect_web_technologies() {
     use web_analyzer::web_technologies::detect_web_technologies;
 
-    let result = detect_web_technologies("example.com").await;
+    let result = detect_web_technologies("example.com", None).await;
     assert!(
         result.is_ok(),
         "Failed to get web tech analysis: {:?}",

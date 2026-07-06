@@ -81,6 +81,7 @@ Validates a single domain through the full pipeline (skip → DNS → HTTP → S
 pub async fn validate_domains_bulk(
     domains: &[String],
     max_concurrency: usize,
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> BulkValidationResult
 ```
 
@@ -211,7 +212,7 @@ async fn main() {
         "invalid.tld".into(), "localhost".into(),
     ];
 
-    let result = validate_domains_bulk(&domains, 10).await;
+    let result = validate_domains_bulk(&domains, 10, None).await;
 
     println!("Valid: {}/{} ({:.1}%)",
         result.stats.valid, result.stats.total, result.stats.success_rate);
