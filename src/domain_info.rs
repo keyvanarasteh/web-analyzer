@@ -25,7 +25,6 @@ const WHOIS_SERVERS: &[(&str, &str)] = &[
     ("coop", "whois.nic.coop"),
     ("museum", "whois.museum"),
     ("arpa", "whois.iana.org"),
-    
     // New Highly Active gTLDs
     ("xyz", "whois.nic.xyz"),
     ("top", "whois.nic.top"),
@@ -62,7 +61,6 @@ const WHOIS_SERVERS: &[(&str, &str)] = &[
     ("global", "whois.nic.global"),
     ("host", "whois.nic.host"),
     ("link", "whois.nic.link"),
-
     // ccTLDs (Country Codes)
     ("ac", "whois.nic.ac"),
     ("ae", "whois.aeda.net.ae"),
@@ -96,7 +94,7 @@ const WHOIS_SERVERS: &[(&str, &str)] = &[
     ("is", "whois.isnic.is"),
     ("it", "whois.nic.it"),
     ("jp", "whois.jprs.jp"), // covers co.jp
-    ("kr", "whois.kr"), // covers co.kr
+    ("kr", "whois.kr"),      // covers co.kr
     ("kz", "whois.nic.kz"),
     ("lt", "whois.domreg.lt"),
     ("lu", "whois.dns.lu"),
@@ -116,58 +114,198 @@ const WHOIS_SERVERS: &[(&str, &str)] = &[
     ("si", "whois.register.si"),
     ("sk", "whois.sk-nic.sk"),
     ("su", "whois.tcinet.ru"),
-    ("th", "whois.thnic.co.th"), // covers co.th
+    ("th", "whois.thnic.co.th"),   // covers co.th
     ("tr", "whois.trabis.gov.tr"), // Covers com.tr, org.tr, etc.
-    ("tw", "whois.twnic.net.tw"), // covers com.tw
-    ("ua", "whois.ua"), // covers com.ua
-    ("uk", "whois.nic.uk"), // Covers co.uk, org.uk
+    ("tw", "whois.twnic.net.tw"),  // covers com.tw
+    ("ua", "whois.ua"),            // covers com.ua
+    ("uk", "whois.nic.uk"),        // Covers co.uk, org.uk
     ("us", "whois.nic.us"),
     ("za", "whois.registry.net.za"), // covers co.za
 ];
 
 /// Common ports for scanning
 const COMMON_PORTS: &[(u16, &str)] = &[
-    (7, "Echo"), (9, "Discard"), (11, "Systat"), (13, "Daytime"), (17, "QOTD"), (19, "Chargen"),
-    (20, "FTP-Data"), (21, "FTP"), (22, "SSH"), (23, "Telnet"), (25, "SMTP"), (26, "RSFTP"),
-    (37, "Time"), (42, "WINS"), (43, "WHOIS"), (49, "TACACS"), (53, "DNS"), (69, "TFTP"),
-    (79, "Finger"), (80, "HTTP"), (81, "HTTP-Alt"), (82, "XFER"), (88, "Kerberos"),
-    (106, "POP3PW"), (110, "POP3"), (111, "RPCBind"), (113, "Ident"), (119, "NNTP"),
-    (135, "MSRPC"), (139, "NetBIOS-SSN"), (143, "IMAP"), (144, "NeWS"), (161, "SNMP"),
-    (179, "BGP"), (199, "SMUX"), (211, "Texas.net"), (212, "ANET"), (222, "RSH-Spam"),
-    (254, "ClearCase"), (255, "BGP"), (256, "RAP"), (259, "ESRO-Gen"), (264, "BGMP"),
-    (280, "HTTP-Mgmt"), (311, "OSX-Server"), (389, "LDAP"), (407, "Timbuktu"), (427, "SLP"),
-    (443, "HTTPS"), (444, "SNPP"), (445, "Microsoft-DS"), (464, "kpasswd"), (465, "SMTPS"),
-    (500, "ISAKMP"), (512, "Exec"), (513, "Login"), (514, "Shell"), (515, "Printer"),
-    (524, "NCP"), (541, "NetWall"), (543, "klogin"), (544, "kshell"), (545, "tk-remote"),
-    (548, "AFP"), (554, "RTSP"), (587, "Submission"), (593, "HTTP-RPC-EPMAP"), (631, "IPP"),
-    (636, "LDAPS"), (646, "LDP"), (749, "Kerberos-Admin"), (808, "CCProxy-HTTP"), (873, "Rsync"),
-    (902, "VMware-Auth"), (989, "FTPS-Data"), (990, "FTPS"), (992, "Telnet-SSL"), (993, "IMAPS"),
-    (995, "POP3S"), (1025, "NFS-or-IIS"), (1026, "LSA"), (1027, "IIS"), (1028, "WinRM"),
-    (1080, "SOCKS"), (1099, "RMI-Registry"), (1194, "OpenVPN"), (1433, "MSSQL"),
-    (1434, "MSSQL-Mgmt"), (1521, "Oracle"), (1524, "Ingres-Lock"), (1720, "H.323"),
-    (1723, "PPTP"), (1883, "MQTT"), (2000, "Cisco-SCCP"), (2049, "NFS"), (2082, "cPanel"),
-    (2083, "cPanel-SSL"), (2086, "WHM"), (2087, "WHM-SSL"), (2095, "Webmail"),
-    (2096, "Webmail-SSL"), (2181, "ZooKeeper"), (2222, "DirectAdmin"), (2375, "Docker"),
-    (2376, "Docker-SSL"), (2601, "Zebra"), (2602, "Rippled"), (2604, "OSPF"), (2605, "BGP"),
-    (3128, "Squid"), (3268, "LDAP-GC"), (3269, "LDAPS-GC"), (3306, "MySQL"), (3389, "RDP"),
-    (3690, "SVN"), (4000, "Diablo"), (4040, "Chef/Subsonic"), (4242, "Rubrics"),
-    (4333, "mSQL"), (4444, "Metasploit-Bind"), (4500, "IPSec-NAT-T"), (4567, "Sinatra"),
-    (4899, "Radmin"), (5000, "UPnP"), (5001, "Iperf"), (5002, "Radio"), (5038, "Asterisk"),
-    (5432, "PostgreSQL"), (5555, "Freeciv"), (5632, "pcAnywhere"), (5672, "AMQP"),
-    (5800, "VNC-HTTP"), (5900, "VNC"), (5901, "VNC-1"), (5938, "TeamViewer"),
-    (5984, "CouchDB"), (6000, "X11"), (6379, "Redis"), (6443, "Kubernetes-API"),
-    (6543, "MythTV"), (6667, "IRC"), (6881, "BitTorrent"), (7000, "Cassandra-Intra"),
-    (7001, "Cassandra-TLS"), (7070, "RealServer"), (7199, "Cassandra-JMX"), (7474, "Neo4j"),
-    (8000, "HTTP-Alt"), (8008, "HTTP-Alt"), (8080, "HTTP-Proxy"), (8081, "HTTP-Proxy"),
-    (8090, "Atlassian-Confluence"), (8443, "HTTPS-Alt"), (8883, "MQTT-SSL"),
-    (8888, "HTTP-Alt"), (9000, "SonarQube/Portainer"), (9042, "Cassandra-CQL"),
-    (9090, "Prometheus"), (9092, "Kafka"), (9100, "JetDirect/PromExporter"),
-    (9160, "Cassandra-Thrift"), (9200, "Elasticsearch"), (9300, "Elasticsearch-Node"),
-    (9443, "Portainer-SSL"), (10000, "Webmin"), (10001, "Webmin-Alt"), (10250, "Kubelet-API"),
-    (11211, "Memcached"), (27017, "MongoDB"), (27018, "MongoDB-Shard"), (27019, "MongoDB-Config"),
-    (28017, "MongoDB-Web"), (50000, "SAP/DB2"), (50070, "Hadoop-Namenode"), (61616, "ActiveMQ"),
-    (8086, "InfluxDB"), (8181, "GlassFish"), (17500, "Dropbox"), (25565, "Minecraft"),
-    (27015, "HLDS/Steam"), (30000, "K8s-NodePort")
+    (7, "Echo"),
+    (9, "Discard"),
+    (11, "Systat"),
+    (13, "Daytime"),
+    (17, "QOTD"),
+    (19, "Chargen"),
+    (20, "FTP-Data"),
+    (21, "FTP"),
+    (22, "SSH"),
+    (23, "Telnet"),
+    (25, "SMTP"),
+    (26, "RSFTP"),
+    (37, "Time"),
+    (42, "WINS"),
+    (43, "WHOIS"),
+    (49, "TACACS"),
+    (53, "DNS"),
+    (69, "TFTP"),
+    (79, "Finger"),
+    (80, "HTTP"),
+    (81, "HTTP-Alt"),
+    (82, "XFER"),
+    (88, "Kerberos"),
+    (106, "POP3PW"),
+    (110, "POP3"),
+    (111, "RPCBind"),
+    (113, "Ident"),
+    (119, "NNTP"),
+    (135, "MSRPC"),
+    (139, "NetBIOS-SSN"),
+    (143, "IMAP"),
+    (144, "NeWS"),
+    (161, "SNMP"),
+    (179, "BGP"),
+    (199, "SMUX"),
+    (211, "Texas.net"),
+    (212, "ANET"),
+    (222, "RSH-Spam"),
+    (254, "ClearCase"),
+    (255, "BGP"),
+    (256, "RAP"),
+    (259, "ESRO-Gen"),
+    (264, "BGMP"),
+    (280, "HTTP-Mgmt"),
+    (311, "OSX-Server"),
+    (389, "LDAP"),
+    (407, "Timbuktu"),
+    (427, "SLP"),
+    (443, "HTTPS"),
+    (444, "SNPP"),
+    (445, "Microsoft-DS"),
+    (464, "kpasswd"),
+    (465, "SMTPS"),
+    (500, "ISAKMP"),
+    (512, "Exec"),
+    (513, "Login"),
+    (514, "Shell"),
+    (515, "Printer"),
+    (524, "NCP"),
+    (541, "NetWall"),
+    (543, "klogin"),
+    (544, "kshell"),
+    (545, "tk-remote"),
+    (548, "AFP"),
+    (554, "RTSP"),
+    (587, "Submission"),
+    (593, "HTTP-RPC-EPMAP"),
+    (631, "IPP"),
+    (636, "LDAPS"),
+    (646, "LDP"),
+    (749, "Kerberos-Admin"),
+    (808, "CCProxy-HTTP"),
+    (873, "Rsync"),
+    (902, "VMware-Auth"),
+    (989, "FTPS-Data"),
+    (990, "FTPS"),
+    (992, "Telnet-SSL"),
+    (993, "IMAPS"),
+    (995, "POP3S"),
+    (1025, "NFS-or-IIS"),
+    (1026, "LSA"),
+    (1027, "IIS"),
+    (1028, "WinRM"),
+    (1080, "SOCKS"),
+    (1099, "RMI-Registry"),
+    (1194, "OpenVPN"),
+    (1433, "MSSQL"),
+    (1434, "MSSQL-Mgmt"),
+    (1521, "Oracle"),
+    (1524, "Ingres-Lock"),
+    (1720, "H.323"),
+    (1723, "PPTP"),
+    (1883, "MQTT"),
+    (2000, "Cisco-SCCP"),
+    (2049, "NFS"),
+    (2082, "cPanel"),
+    (2083, "cPanel-SSL"),
+    (2086, "WHM"),
+    (2087, "WHM-SSL"),
+    (2095, "Webmail"),
+    (2096, "Webmail-SSL"),
+    (2181, "ZooKeeper"),
+    (2222, "DirectAdmin"),
+    (2375, "Docker"),
+    (2376, "Docker-SSL"),
+    (2601, "Zebra"),
+    (2602, "Rippled"),
+    (2604, "OSPF"),
+    (2605, "BGP"),
+    (3128, "Squid"),
+    (3268, "LDAP-GC"),
+    (3269, "LDAPS-GC"),
+    (3306, "MySQL"),
+    (3389, "RDP"),
+    (3690, "SVN"),
+    (4000, "Diablo"),
+    (4040, "Chef/Subsonic"),
+    (4242, "Rubrics"),
+    (4333, "mSQL"),
+    (4444, "Metasploit-Bind"),
+    (4500, "IPSec-NAT-T"),
+    (4567, "Sinatra"),
+    (4899, "Radmin"),
+    (5000, "UPnP"),
+    (5001, "Iperf"),
+    (5002, "Radio"),
+    (5038, "Asterisk"),
+    (5432, "PostgreSQL"),
+    (5555, "Freeciv"),
+    (5632, "pcAnywhere"),
+    (5672, "AMQP"),
+    (5800, "VNC-HTTP"),
+    (5900, "VNC"),
+    (5901, "VNC-1"),
+    (5938, "TeamViewer"),
+    (5984, "CouchDB"),
+    (6000, "X11"),
+    (6379, "Redis"),
+    (6443, "Kubernetes-API"),
+    (6543, "MythTV"),
+    (6667, "IRC"),
+    (6881, "BitTorrent"),
+    (7000, "Cassandra-Intra"),
+    (7001, "Cassandra-TLS"),
+    (7070, "RealServer"),
+    (7199, "Cassandra-JMX"),
+    (7474, "Neo4j"),
+    (8000, "HTTP-Alt"),
+    (8008, "HTTP-Alt"),
+    (8080, "HTTP-Proxy"),
+    (8081, "HTTP-Proxy"),
+    (8090, "Atlassian-Confluence"),
+    (8443, "HTTPS-Alt"),
+    (8883, "MQTT-SSL"),
+    (8888, "HTTP-Alt"),
+    (9000, "SonarQube/Portainer"),
+    (9042, "Cassandra-CQL"),
+    (9090, "Prometheus"),
+    (9092, "Kafka"),
+    (9100, "JetDirect/PromExporter"),
+    (9160, "Cassandra-Thrift"),
+    (9200, "Elasticsearch"),
+    (9300, "Elasticsearch-Node"),
+    (9443, "Portainer-SSL"),
+    (10000, "Webmin"),
+    (10001, "Webmin-Alt"),
+    (10250, "Kubelet-API"),
+    (11211, "Memcached"),
+    (27017, "MongoDB"),
+    (27018, "MongoDB-Shard"),
+    (27019, "MongoDB-Config"),
+    (28017, "MongoDB-Web"),
+    (50000, "SAP/DB2"),
+    (50070, "Hadoop-Namenode"),
+    (61616, "ActiveMQ"),
+    (8086, "InfluxDB"),
+    (8181, "GlassFish"),
+    (17500, "Dropbox"),
+    (25565, "Minecraft"),
+    (27015, "HLDS/Steam"),
+    (30000, "K8s-NodePort"),
 ];
 
 /// Security headers to check
@@ -276,18 +414,36 @@ pub async fn get_domain_info(
 ) -> Result<DomainInfoResult, Box<dyn std::error::Error + Send + Sync>> {
     let clean = clean_domain(domain);
 
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(5))
         .danger_accept_invalid_certs(true)
         .redirect(reqwest::redirect::Policy::limited(3))
         .user_agent("Mozilla/5.0")
         .build()?;
 
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Domain Info".into(), percentage: 5.0, message: format!("Initializing scan for {}", clean), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Domain Info".into(),
+                percentage: 5.0,
+                message: format!("Initializing scan for {}", clean),
+                status: "Info".into(),
+            })
+            .await;
+    }
 
     // ── IP Resolution ───────────────────────────────────────────────────
     let (mut ipv4, mut all_ipv4, mut ipv6) = (None, vec![], vec![]);
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "IP Resolution".into(), percentage: 10.0, message: "Resolving IP addresses...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "IP Resolution".into(),
+                percentage: 10.0,
+                message: "Resolving IP addresses...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
 
     if let Ok(addrs) = tokio::net::lookup_host(format!("{}:80", clean)).await {
         for addr in addrs {
@@ -304,52 +460,187 @@ pub async fn get_domain_info(
     if !all_ipv4.is_empty() {
         ipv4 = Some(all_ipv4[0].clone());
     }
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "IP Resolution".into(), percentage: 15.0, message: "IP Resolution completed".into(), status: "Success".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "IP Resolution".into(),
+                percentage: 15.0,
+                message: "IP Resolution completed".into(),
+                status: "Success".into(),
+            })
+            .await;
+    }
 
     // ── Reverse DNS ─────────────────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Reverse DNS".into(), percentage: 18.0, message: "Looking up reverse DNS...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Reverse DNS".into(),
+                percentage: 18.0,
+                message: "Looking up reverse DNS...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let reverse_dns = if let Some(ref ip) = ipv4 {
         reverse_dns_lookup(ip).await
     } else {
         None
     };
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Reverse DNS".into(), percentage: 20.0, message: "Reverse DNS completed".into(), status: "Success".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Reverse DNS".into(),
+                percentage: 20.0,
+                message: "Reverse DNS completed".into(),
+                status: "Success".into(),
+            })
+            .await;
+    }
 
     // ── Run concurrent tasks ────────────────────────────────────────────
     let whois_fut = async {
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "WHOIS".into(), percentage: 25.0, message: "Querying WHOIS registries...".into(), status: "Info".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "WHOIS".into(),
+                    percentage: 25.0,
+                    message: "Querying WHOIS registries...".into(),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         let res = query_whois(&clean).await;
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "WHOIS".into(), percentage: 40.0, message: "WHOIS data retrieved".into(), status: "Success".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "WHOIS".into(),
+                    percentage: 40.0,
+                    message: "WHOIS data retrieved".into(),
+                    status: "Success".into(),
+                })
+                .await;
+        }
         res
     };
     let ssl_fut = async {
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "SSL".into(), percentage: 30.0, message: "Verifying SSL certificates...".into(), status: "Info".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "SSL".into(),
+                    percentage: 30.0,
+                    message: "Verifying SSL certificates...".into(),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         let res = check_ssl(&clean).await;
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "SSL".into(), percentage: 50.0, message: "SSL certificate validated".into(), status: "Success".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "SSL".into(),
+                    percentage: 50.0,
+                    message: "SSL certificate validated".into(),
+                    status: "Success".into(),
+                })
+                .await;
+        }
         res
     };
     let dns_fut = async {
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "DNS".into(), percentage: 35.0, message: "Fetching DNS records...".into(), status: "Info".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "DNS".into(),
+                    percentage: 35.0,
+                    message: "Fetching DNS records...".into(),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         let res = get_dns_records(&clean).await;
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "DNS".into(), percentage: 60.0, message: "DNS records retrieved".into(), status: "Success".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "DNS".into(),
+                    percentage: 60.0,
+                    message: "DNS records retrieved".into(),
+                    status: "Success".into(),
+                })
+                .await;
+        }
         res
     };
     let ports_fut = async {
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Ports".into(), percentage: 40.0, message: "Scanning common ports...".into(), status: "Info".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "Ports".into(),
+                    percentage: 40.0,
+                    message: "Scanning common ports...".into(),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         let res = scan_ports(ipv4.as_deref()).await;
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Ports".into(), percentage: 70.0, message: "Port scanning complete".into(), status: "Success".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "Ports".into(),
+                    percentage: 70.0,
+                    message: "Port scanning complete".into(),
+                    status: "Success".into(),
+                })
+                .await;
+        }
         res
     };
     let http_fut = async {
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "HTTP".into(), percentage: 45.0, message: "Checking HTTP status...".into(), status: "Info".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "HTTP".into(),
+                    percentage: 45.0,
+                    message: "Checking HTTP status...".into(),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         let res = check_http_status(&client, &clean).await;
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "HTTP".into(), percentage: 80.0, message: "HTTP check complete".into(), status: "Success".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "HTTP".into(),
+                    percentage: 80.0,
+                    message: "HTTP check complete".into(),
+                    status: "Success".into(),
+                })
+                .await;
+        }
         res
     };
     let security_fut = async {
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 50.0, message: "Analyzing security headers...".into(), status: "Info".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "Security".into(),
+                    percentage: 50.0,
+                    message: "Analyzing security headers...".into(),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         let res = check_security(&client, &clean).await;
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 90.0, message: "Security analysis complete".into(), status: "Success".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "Security".into(),
+                    percentage: 90.0,
+                    message: "Security analysis complete".into(),
+                    status: "Success".into(),
+                })
+                .await;
+        }
         res
     };
 
@@ -475,7 +766,7 @@ pub async fn query_whois(domain: &str) -> WhoisInfo {
             .replace("whois://", "")
             .replace("http://", "")
             .replace("https://", "");
-            
+
         if let Some(ref_out) = query_whois_tcp(domain, &referral).await {
             format!("{}\n---\n{}", output, ref_out)
         } else {
@@ -707,11 +998,11 @@ pub async fn check_ssl(domain: &str) -> SslInfo {
                 // Compute days_until_expiry from parsed date
                 // OpenSSL format: "Jun 15 12:00:00 2025 GMT" or "Jun  5 12:00:00 2025 GMT"
                 let clean_expiry = expiry_str.trim_end_matches(" GMT").trim_end_matches(" UTC");
-                
+
                 // Try parsing with space-padded day (%e) or zero-padded day (%d)
                 let parsed_date = chrono::NaiveDateTime::parse_from_str(clean_expiry, "%b %e %H:%M:%S %Y")
                     .or_else(|_| chrono::NaiveDateTime::parse_from_str(clean_expiry, "%b %d %H:%M:%S %Y"));
-                    
+
                 if let Ok(expiry) = parsed_date {
                     let now = chrono::Utc::now().naive_utc();
                     ssl.days_until_expiry = Some((expiry - now).num_days());

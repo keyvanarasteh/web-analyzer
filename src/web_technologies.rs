@@ -236,7 +236,7 @@ pub async fn detect_web_technologies(
         format!("https://{}", domain)
     };
 
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(30))
         .danger_accept_invalid_certs(true)
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -256,7 +256,12 @@ pub async fn detect_web_technologies(
         }
     };
     let headers = res.headers().clone();
-    report_progress(&progress_tx, 30.0, "Response received; reading HTML", "Success");
+    report_progress(
+        &progress_tx,
+        30.0,
+        "Response received; reading HTML",
+        "Success",
+    );
     let html_raw = match res.text().await {
         Ok(html) => html,
         Err(e) => {

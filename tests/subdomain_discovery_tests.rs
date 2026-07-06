@@ -4,7 +4,7 @@ async fn test_discover_subdomains() {
     use web_analyzer::subdomain_discovery::discover_subdomains;
 
     // Example.com doesn't have many subdomains, but subfinder should at least run and not crash
-    let result = discover_subdomains("example.com").await;
+    let result = discover_subdomains("example.com", None).await;
 
     // Depending on whether subfinder is installed on the testing env, this might fail with NotFound.
     if let Err(e) = &result {

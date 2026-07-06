@@ -125,17 +125,18 @@ pub async fn analyze_security(
     domain: &str,
     progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<SecurityAnalysisResult, Box<dyn std::error::Error + Send + Sync>> {
-    
     if let Some(t) = &progress_tx {
-        let _ = t.send(crate::ScanProgress {
-            module: "Security Analysis".into(),
-            percentage: 10.0,
-            message: "Beginning native HTTPS and Header analysis".into(),
-            status: "Info".into(),
-        }).await;
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security Analysis".into(),
+                percentage: 10.0,
+                message: "Beginning native HTTPS and Header analysis".into(),
+                status: "Info".into(),
+            })
+            .await;
     }
 
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(10))
         .danger_accept_invalid_certs(true)
         .redirect(reqwest::redirect::Policy::limited(3))
@@ -147,7 +148,7 @@ pub async fn analyze_security(
     let mut security_headers = HashMap::new();
     let mut missing_critical = vec![];
     let mut missing_high = vec![];
-    
+
     // Default struct configs
     let mut ssl_result = SslAnalysisResult {
         ssl_available: false,
@@ -160,32 +161,36 @@ pub async fn analyze_security(
     };
 
     if let Some(t) = &progress_tx {
-        let _ = t.send(crate::ScanProgress {
-            module: "Security Analysis".into(),
-            percentage: 50.0,
-            message: "Testing HTTP endpoint redirects and CORS configs".into(),
-            status: "Info".into(),
-        }).await;
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security Analysis".into(),
+                percentage: 50.0,
+                message: "Testing HTTP endpoint redirects and CORS configs".into(),
+                status: "Info".into(),
+            })
+            .await;
     }
 
-    if let Ok(resp) = client.get(&format!("http://{}", domain)).send().await {
+    if let Ok(resp) = client.get(format!("http://{}", domain)).send().await {
         if resp.url().scheme() == "https" {
             https_redirect = true;
         }
     }
 
     if let Some(t) = &progress_tx {
-        let _ = t.send(crate::ScanProgress {
-            module: "Security Analysis".into(),
-            percentage: 70.0,
-            message: "Validating TLS handshake natively and grading compliance".into(),
-            status: "Info".into(),
-        }).await;
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security Analysis".into(),
+                percentage: 70.0,
+                message: "Validating TLS handshake natively and grading compliance".into(),
+                status: "Info".into(),
+            })
+            .await;
     }
 
-    if let Ok(resp) = client.get(&format!("https://{}", domain)).send().await {
+    if let Ok(resp) = client.get(format!("https://{}", domain)).send().await {
         https_available = true;
-        
+
         ssl_result.ssl_available = true;
         ssl_result.protocol_version = Some("TLS (Native Mobile Check)".into());
         ssl_result.cipher_strength = "Standard".into();
@@ -200,36 +205,50 @@ pub async fn analyze_security(
 
         for (h, severity) in essential_headers {
             if let Some(val) = resp.headers().get(h) {
-                security_headers.insert(h.to_string(), HeaderAnalysis {
-                    present: true,
-                    value: val.to_str().unwrap_or("").into(),
-                    importance: severity.into(),
-                    security_level: "Good".into(),
-                });
+                security_headers.insert(
+                    h.to_string(),
+                    HeaderAnalysis {
+                        present: true,
+                        value: val.to_str().unwrap_or("").into(),
+                        importance: severity.into(),
+                        security_level: "Good".into(),
+                    },
+                );
             } else {
-                if severity == "Critical" { missing_critical.push(h.into()); }
-                else { missing_high.push(h.into()); }
+                if severity == "Critical" {
+                    missing_critical.push(h.into());
+                } else {
+                    missing_high.push(h.into());
+                }
             }
         }
     }
 
-    let headers_score = if https_available { 50 } else { 0 } +
-                         if https_redirect { 10 } else { 0 } +
-                         (security_headers.len() as u32 * 10);
-    
-    let grade = if headers_score > 90 { "A+" }
-                else if headers_score > 80 { "A" }
-                else if headers_score > 60 { "B" }
-                else if headers_score > 40 { "C" }
-                else { "F" };
+    let headers_score = if https_available { 50 } else { 0 }
+        + if https_redirect { 10 } else { 0 }
+        + (security_headers.len() as u32 * 10);
+
+    let grade = if headers_score > 90 {
+        "A+"
+    } else if headers_score > 80 {
+        "A"
+    } else if headers_score > 60 {
+        "B"
+    } else if headers_score > 40 {
+        "C"
+    } else {
+        "F"
+    };
 
     if let Some(t) = &progress_tx {
-        let _ = t.send(crate::ScanProgress {
-            module: "Security Analysis".into(),
-            percentage: 100.0,
-            message: "HTTPS Handshakes analyzed!".into(),
-            status: "Info".into(),
-        }).await;
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security Analysis".into(),
+                percentage: 100.0,
+                message: "HTTPS Handshakes analyzed!".into(),
+                status: "Info".into(),
+            })
+            .await;
     }
 
     Ok(SecurityAnalysisResult {

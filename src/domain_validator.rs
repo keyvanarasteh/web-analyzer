@@ -140,7 +140,7 @@ impl AtomicStats {
 
 /// Validate a single domain comprehensively (DNS → HTTP → SSL)
 pub async fn validate_domain(domain: &str) -> ValidationResult {
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(10))
         .danger_accept_invalid_certs(true)
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -166,7 +166,7 @@ pub async fn validate_domains_bulk(
         "Info",
     );
 
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(10))
         .danger_accept_invalid_certs(true)
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -257,7 +257,10 @@ pub async fn validate_domains_bulk(
     report_progress(
         &progress_tx,
         100.0,
-        format!("Bulk validation complete: {} valid of {}", valid_count, total),
+        format!(
+            "Bulk validation complete: {} valid of {}",
+            valid_count, total
+        ),
         "Success",
     );
 
@@ -472,7 +475,7 @@ async fn validate_http(client: &Client, domain: &str) -> Result<HttpValidation, 
 
     // HTTP fallback
     // Build a separate client that doesn't follow redirects for HTTP check
-    let no_redirect_client = Client::builder()
+    let no_redirect_client = crate::http_client_builder()
         .timeout(Duration::from_secs(8))
         .redirect(reqwest::redirect::Policy::none())
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -482,7 +485,8 @@ async fn validate_http(client: &Client, domain: &str) -> Result<HttpValidation, 
     if let Ok(resp) = no_redirect_client
         .head(format!("http://{}", domain))
         .send()
-        .await {
+        .await
+    {
         info.http_reachable = true;
         info.http_status = Some(resp.status().as_u16());
 

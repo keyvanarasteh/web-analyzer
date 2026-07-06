@@ -1066,7 +1066,7 @@ impl HoneypotEngine {
         Self {
             config: config.clone(),
             state: HoneypotState {
-                config: config,
+                config,
                 total_requests: 0,
                 total_attacks_detected: 0,
                 unique_attackers: 0,
@@ -1188,9 +1188,10 @@ impl HoneypotEngine {
 
             // Check context keywords (AND logic)
             if !vector.context_keywords.is_empty() {
-                let has_context = vector.context_keywords.iter().any(|kw| {
-                    search_text.to_lowercase().contains(&kw.to_lowercase())
-                });
+                let has_context = vector
+                    .context_keywords
+                    .iter()
+                    .any(|kw| search_text.to_lowercase().contains(&kw.to_lowercase()));
                 if !has_context {
                     continue;
                 }
@@ -1218,11 +1219,7 @@ impl HoneypotEngine {
                             mitre_id: Some(vector.mitre_id.to_string()),
                             simulated_response: 0, // Filled later
                             attacker_ip: req.ip.clone(),
-                            user_agent: req
-                                .headers
-                                .get("user-agent")
-                                .cloned()
-                                .unwrap_or_default(),
+                            user_agent: req.headers.get("user-agent").cloned().unwrap_or_default(),
                             headers: req.headers.clone(),
                             session_id: Some(profile_id.to_string()),
                             confidence,
@@ -1300,9 +1297,7 @@ impl HoneypotEngine {
         if detections.is_empty() {
             return 200;
         }
-        let has_critical = detections
-            .iter()
-            .any(|d| d.severity == Severity::Critical);
+        let has_critical = detections.iter().any(|d| d.severity == Severity::Critical);
         let has_high = detections.iter().any(|d| d.severity == Severity::High);
 
         if has_critical {
@@ -1422,9 +1417,12 @@ impl HoneypotEngine {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
         let mut hasher = DefaultHasher::new();
-        Utc::now().timestamp_nanos_opt().unwrap_or(0).hash(&mut hasher);
+        Utc::now()
+            .timestamp_nanos_opt()
+            .unwrap_or(0)
+            .hash(&mut hasher);
         let hash = hasher.finish();
-        let jitter = (hash % (self.config.max_delay_ms - self.config.min_delay_ms + 1)) as u64;
+        let jitter = hash % (self.config.max_delay_ms - self.config.min_delay_ms + 1);
         Duration::from_millis(self.config.min_delay_ms + jitter)
     }
 
@@ -1447,11 +1445,7 @@ impl HoneypotEngine {
                     is_tor: false,
                     is_cloud: false,
                     is_proxy: false,
-                    user_agent: req
-                        .headers
-                        .get("user-agent")
-                        .cloned()
-                        .unwrap_or_default(),
+                    user_agent: req.headers.get("user-agent").cloned().unwrap_or_default(),
                     browser_fingerprint: self.parse_user_agent(
                         req.headers
                             .get("user-agent")
@@ -1478,12 +1472,12 @@ impl HoneypotEngine {
 
     /// Build a fingerprint from request characteristics.
     fn build_fingerprint(&self, req: &RawRequest) -> String {
-        let ua = req.headers.get("user-agent").map(|s| s.as_str()).unwrap_or("");
-        let accept = req
+        let ua = req
             .headers
-            .get("accept")
+            .get("user-agent")
             .map(|s| s.as_str())
             .unwrap_or("");
+        let accept = req.headers.get("accept").map(|s| s.as_str()).unwrap_or("");
         let accept_lang = req
             .headers
             .get("accept-language")
@@ -1495,12 +1489,18 @@ impl HoneypotEngine {
             .map(|s| s.as_str())
             .unwrap_or("");
 
-        format!("{}|{}|{}|{}|{}", req.ip, ua, accept, accept_lang, accept_enc)
+        format!(
+            "{}|{}|{}|{}|{}",
+            req.ip, ua, accept, accept_lang, accept_enc
+        )
     }
 
     /// Update request time tracking for cadence analysis.
     fn update_request_times(&mut self, profile_id: &str) {
-        let times = self.request_times.entry(profile_id.to_string()).or_default();
+        let times = self
+            .request_times
+            .entry(profile_id.to_string())
+            .or_default();
         times.push(Instant::now());
         // Keep only last 100 timestamps
         if times.len() > 100 {
@@ -1550,10 +1550,7 @@ impl HoneypotEngine {
                     &det.timestamp[..19],
                     det.category,
                     det.subcategory,
-                    det.severity
-                        .clone()
-                        .serde_name()
-                        .unwrap_or("unknown"),
+                    det.severity.clone().serde_name().unwrap_or("unknown"),
                     det.confidence
                 ));
             }
@@ -1576,11 +1573,8 @@ impl HoneypotEngine {
             .map(|(id, p)| (id.clone(), p.risk_score))
             .collect();
         sorted.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        let keep_ids: std::collections::HashSet<String> = sorted
-            .iter()
-            .take(5000)
-            .map(|(id, _)| id.clone())
-            .collect();
+        let keep_ids: std::collections::HashSet<String> =
+            sorted.iter().take(5000).map(|(id, _)| id.clone()).collect();
         self.state
             .attacker_profiles
             .retain(|id, _| keep_ids.contains(id));
@@ -1727,16 +1721,12 @@ impl HoneypotEngine {
         if let Some(pos) = ua.find(prefix) {
             let start = pos + prefix.len();
             let end = ua[start..]
-                .find(|c: char| c == ' ' || c == ';' || c == ')')
+                .find([' ', ';', ')'])
                 .map(|p| start + p)
                 .unwrap_or(ua.len());
             let version = &ua[start..end];
             // Take only major.minor
-            version
-                .split('.')
-                .take(2)
-                .collect::<Vec<_>>()
-                .join(".")
+            version.split('.').take(2).collect::<Vec<_>>().join(".")
         } else {
             "0.0".to_string()
         }
@@ -1775,7 +1765,11 @@ impl HoneypotEngine {
         if s.len() <= max_len {
             s.to_string()
         } else {
-            format!("{}...[truncated {} bytes]", &s[..max_len], s.len() - max_len)
+            format!(
+                "{}...[truncated {} bytes]",
+                &s[..max_len],
+                s.len() - max_len
+            )
         }
     }
 
@@ -1783,7 +1777,10 @@ impl HoneypotEngine {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
         let mut hasher = DefaultHasher::new();
-        Utc::now().timestamp_nanos_opt().unwrap_or(0).hash(&mut hasher);
+        Utc::now()
+            .timestamp_nanos_opt()
+            .unwrap_or(0)
+            .hash(&mut hasher);
         format!("{:016x}", hasher.finish())[..len].to_string()
     }
 
@@ -1823,8 +1820,7 @@ impl HoneypotEngine {
 
     /// Get top-N most dangerous attacker profiles.
     pub fn get_top_threats(&self, n: usize) -> Vec<&AttackerProfile> {
-        let mut profiles: Vec<&AttackerProfile> =
-            self.state.attacker_profiles.values().collect();
+        let mut profiles: Vec<&AttackerProfile> = self.state.attacker_profiles.values().collect();
         profiles.sort_by(|a, b| {
             b.risk_score
                 .partial_cmp(&a.risk_score)
@@ -1881,7 +1877,12 @@ impl Severity {
 mod tests {
     use super::*;
 
-    fn make_request(method: &str, path: &str, body: &str, headers: Vec<(&str, &str)>) -> RawRequest {
+    fn make_request(
+        method: &str,
+        path: &str,
+        body: &str,
+        headers: Vec<(&str, &str)>,
+    ) -> RawRequest {
         let mut h = HashMap::new();
         for (k, v) in headers {
             h.insert(k.to_lowercase(), v.to_string());
@@ -1918,12 +1919,7 @@ mod tests {
     #[test]
     fn test_xss_detection() {
         let mut engine = HoneypotEngine::new();
-        let req = make_request(
-            "GET",
-            "/search",
-            "q=<script>alert('XSS')</script>",
-            vec![],
-        );
+        let req = make_request("GET", "/search", "q=<script>alert('XSS')</script>", vec![]);
         let result = engine.process_request(&req);
         let xss = result
             .detections
@@ -1949,12 +1945,7 @@ mod tests {
     #[test]
     fn test_path_traversal_detection() {
         let mut engine = HoneypotEngine::new();
-        let req = make_request(
-            "GET",
-            "/download",
-            "file=../../../etc/passwd",
-            vec![],
-        );
+        let req = make_request("GET", "/download", "file=../../../etc/passwd", vec![]);
         let result = engine.process_request(&req);
         let pt = result
             .detections
@@ -1967,12 +1958,7 @@ mod tests {
     #[test]
     fn test_ssti_detection() {
         let mut engine = HoneypotEngine::new();
-        let req = make_request(
-            "POST",
-            "/contact",
-            "name={{7*7}}",
-            vec![],
-        );
+        let req = make_request("POST", "/contact", "name={{7*7}}", vec![]);
         let result = engine.process_request(&req);
         let ssti = result
             .detections
@@ -1985,12 +1971,7 @@ mod tests {
     #[test]
     fn test_lfi_detection() {
         let mut engine = HoneypotEngine::new();
-        let req = make_request(
-            "GET",
-            "/view",
-            "page=/etc/passwd",
-            vec![],
-        );
+        let req = make_request("GET", "/view", "page=/etc/passwd", vec![]);
         let result = engine.process_request(&req);
         let lfi = result
             .detections
@@ -2025,7 +2006,10 @@ mod tests {
             "POST",
             "/",
             r#"0:[["$","@1",null,{"id":"malicious_component","chunks":[]}]]"#,
-            vec![("Content-Type", "text/x-component"), ("Next-Action", "exploit")],
+            vec![
+                ("Content-Type", "text/x-component"),
+                ("Next-Action", "exploit"),
+            ],
         );
         let result = engine.process_request(&req);
         let rsc = result
@@ -2043,9 +2027,12 @@ mod tests {
         // Send multiple attacks from same IP
         for i in 0..5 {
             let body = format!("cmd=;id_{}", i);
-            let req = make_request("POST", "/api/exec", &body, vec![
-                ("User-Agent", "sqlmap/1.0"),
-            ]);
+            let req = make_request(
+                "POST",
+                "/api/exec",
+                &body,
+                vec![("User-Agent", "sqlmap/1.0")],
+            );
             engine.process_request(&req);
         }
 
@@ -2071,12 +2058,7 @@ mod tests {
     #[test]
     fn test_no_detection_on_clean_request() {
         let mut engine = HoneypotEngine::new();
-        let req = make_request(
-            "GET",
-            "/",
-            "",
-            vec![("User-Agent", "Mozilla/5.0")],
-        );
+        let req = make_request("GET", "/", "", vec![("User-Agent", "Mozilla/5.0")]);
         let result = engine.process_request(&req);
         // Clean GET to / with no payloads should have zero critical/high detections
         let critical = result
@@ -2084,7 +2066,10 @@ mod tests {
             .iter()
             .filter(|d| d.severity >= Severity::High)
             .count();
-        assert_eq!(critical, 0, "Clean request should not trigger high-severity detections");
+        assert_eq!(
+            critical, 0,
+            "Clean request should not trigger high-severity detections"
+        );
     }
 
     #[test]
@@ -2109,7 +2094,11 @@ mod tests {
             ]
             .into_iter()
             .collect(),
-            techniques_used: vec!["union_select".to_string(), "stacked".to_string(), "reflected".to_string()],
+            techniques_used: vec![
+                "union_select".to_string(),
+                "stacked".to_string(),
+                "reflected".to_string(),
+            ],
             avg_request_interval: 0.05,
             is_automated: true,
             risk_score: 0.0,
@@ -2120,7 +2109,11 @@ mod tests {
         let score = HoneypotEngine::calculate_risk_score(&profile);
         profile.risk_score = score;
 
-        assert!(score > 60.0, "Risk score should be high for diverse attacks: got {}", score);
+        assert!(
+            score > 60.0,
+            "Risk score should be high for diverse attacks: got {}",
+            score
+        );
         assert!(score <= 100.0, "Risk score should not exceed 100");
     }
 
@@ -2147,7 +2140,10 @@ mod tests {
             "POST",
             "/dashboard",
             "[]",
-            vec![("Content-Type", "text/x-component"), ("Next-Action", "test")],
+            vec![
+                ("Content-Type", "text/x-component"),
+                ("Next-Action", "test"),
+            ],
         );
         let body = engine.generate_fake_rsc_response(&req);
         assert!(!body.is_empty());

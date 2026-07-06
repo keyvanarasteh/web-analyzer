@@ -49,5 +49,8 @@ pub async fn run_nmap_scan(
     _domain: &str,
     _progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<NmapScanResult, Box<dyn std::error::Error + Send + Sync>> {
-    Err(crate::error::WebAnalyzerError::UnsupportedPlatform("Hardware-level Nmap port scanning is unsupported on mobile endpoints.".into()).into())
+    Err(crate::error::WebAnalyzerError::UnsupportedPlatform(
+        "Hardware-level Nmap port scanning is unsupported on mobile endpoints.".into(),
+    )
+    .into())
 }

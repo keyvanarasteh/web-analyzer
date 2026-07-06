@@ -206,7 +206,7 @@ pub async fn analyze_security(
         domain.to_string()
     };
 
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(30))
         .danger_accept_invalid_certs(true)
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
@@ -217,7 +217,7 @@ pub async fn analyze_security(
     let https_url = format!("https://{}", clean);
 
     // Check HTTPS redirect from HTTP (no-follow)
-    let redir_client = Client::builder()
+    let redir_client = crate::http_client_builder()
         .timeout(Duration::from_secs(15))
         .danger_accept_invalid_certs(true)
         .redirect(reqwest::redirect::Policy::none())
@@ -253,39 +253,120 @@ pub async fn analyze_security(
     let body_text = primary.text().await.unwrap_or_default();
 
     // ── 1. WAF Detection ────────────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 10.0, message: "Detecting Web Application Firewalls (WAF)...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security".into(),
+                percentage: 10.0,
+                message: "Detecting Web Application Firewalls (WAF)...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let waf_detection = detect_waf(&headers);
 
     // ── 2. Security Headers ─────────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 20.0, message: "Analyzing HTTP security headers...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security".into(),
+                percentage: 20.0,
+                message: "Analyzing HTTP security headers...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let security_headers = analyze_security_headers(&headers);
 
     // ── 3. SSL Analysis ─────────────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 30.0, message: "Evaluating SSL/TLS handshake and ciphers...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security".into(),
+                percentage: 30.0,
+                message: "Evaluating SSL/TLS handshake and ciphers...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let ssl_analysis = analyze_ssl(&clean).await;
 
     // ── 4. CORS Policy ──────────────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 60.0, message: "Inspecting CORS policy configuration...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security".into(),
+                percentage: 60.0,
+                message: "Inspecting CORS policy configuration...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let cors_policy = analyze_cors(&headers);
 
     // ── 5. Cookie Security ──────────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 70.0, message: "Checking cookie security flags...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security".into(),
+                percentage: 70.0,
+                message: "Checking cookie security flags...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let cookie_security = analyze_cookies(&headers);
 
     // ── 6. HTTP Methods ─────────────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 75.0, message: "Discovering allowed HTTP methods...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security".into(),
+                percentage: 75.0,
+                message: "Discovering allowed HTTP methods...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let http_methods = detect_methods(&client, &https_url).await;
 
     // ── 7. Server Information ───────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 85.0, message: "Looking for server information disclosure...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security".into(),
+                percentage: 85.0,
+                message: "Looking for server information disclosure...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let server_information = analyze_server_info(&headers);
 
     // ── 8. Vulnerability Scan ───────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 90.0, message: "Performing basic vulnerability pattern matching...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security".into(),
+                percentage: 90.0,
+                message: "Performing basic vulnerability pattern matching...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let vulnerability_scan = perform_vuln_scan(&resp_url, &body_text);
 
     // ── 9. Score & Recommendations ──────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Security".into(), percentage: 95.0, message: "Calculating final security score...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Security".into(),
+                percentage: 95.0,
+                message: "Calculating final security score...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let security_score = calculate_score(
         &security_headers,
         &ssl_analysis,
@@ -363,7 +444,7 @@ fn detect_waf(headers: &reqwest::header::HeaderMap) -> WafDetectionResult {
         }
     }
 
-    detected.sort_by(|a, b| b.score.cmp(&a.score));
+    detected.sort_by_key(|waf_match| std::cmp::Reverse(waf_match.score));
 
     WafDetectionResult {
         detected: !detected.is_empty(),
@@ -422,11 +503,10 @@ fn analyze_security_headers(headers: &reqwest::header::HeaderMap) -> SecurityHea
         );
     }
 
-    let score = if max_score > 0 {
-        total_score * 100 / max_score
-    } else {
-        0
-    };
+    let score = total_score
+        .saturating_mul(100)
+        .checked_div(max_score)
+        .unwrap_or(0);
 
     SecurityHeadersResult {
         headers: analysis,

@@ -63,6 +63,7 @@
 pub mod error;
 
 use serde::{Deserialize, Serialize};
+use std::sync::Once;
 
 /// Standardized progress event for async tasks.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -71,6 +72,16 @@ pub struct ScanProgress {
     pub percentage: f32,
     pub message: String,
     pub status: String,
+}
+
+static CRYPTO_PROVIDER_INIT: Once = Once::new();
+
+/// Return a reqwest client builder after installing the Rustls ring provider once.
+pub fn http_client_builder() -> reqwest::ClientBuilder {
+    CRYPTO_PROVIDER_INIT.call_once(|| {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    });
+    reqwest::Client::builder()
 }
 
 /// Compile-time embedded payloads from the `payloads/` directory.
@@ -112,14 +123,23 @@ pub mod domain_validator_mobile;
 
 // ── Reconnaissance ──────────────────────────────────────────────────
 
-#[cfg(all(feature = "subdomain-discovery", not(any(target_os = "android", target_os = "ios"))))]
+#[cfg(all(
+    feature = "subdomain-discovery",
+    not(any(target_os = "android", target_os = "ios"))
+))]
 #[cfg_attr(docsrs, doc(cfg(feature = "subdomain-discovery")))]
 pub mod subdomain_discovery;
 
-#[cfg(all(feature = "subdomain-discovery", any(target_os = "android", target_os = "ios")))]
+#[cfg(all(
+    feature = "subdomain-discovery",
+    any(target_os = "android", target_os = "ios")
+))]
 #[cfg_attr(docsrs, doc(cfg(feature = "subdomain-discovery-mobile")))]
 pub mod subdomain_discovery_mobile;
-#[cfg(all(feature = "subdomain-discovery", any(target_os = "android", target_os = "ios")))]
+#[cfg(all(
+    feature = "subdomain-discovery",
+    any(target_os = "android", target_os = "ios")
+))]
 pub use subdomain_discovery_mobile as subdomain_discovery;
 
 #[cfg(feature = "contact-spy")]
@@ -152,14 +172,23 @@ pub mod subdomain_takeover_mobile;
 #[cfg_attr(docsrs, doc(cfg(feature = "cloudflare-bypass")))]
 pub mod cloudflare_bypass;
 
-#[cfg(all(feature = "nmap-zero-day", not(any(target_os = "android", target_os = "ios"))))]
+#[cfg(all(
+    feature = "nmap-zero-day",
+    not(any(target_os = "android", target_os = "ios"))
+))]
 #[cfg_attr(docsrs, doc(cfg(feature = "nmap-zero-day")))]
 pub mod nmap_zero_day;
 
-#[cfg(all(feature = "nmap-zero-day", any(target_os = "android", target_os = "ios")))]
+#[cfg(all(
+    feature = "nmap-zero-day",
+    any(target_os = "android", target_os = "ios")
+))]
 #[cfg_attr(docsrs, doc(cfg(feature = "nmap-zero-day-mobile")))]
 pub mod nmap_zero_day_mobile;
-#[cfg(all(feature = "nmap-zero-day", any(target_os = "android", target_os = "ios")))]
+#[cfg(all(
+    feature = "nmap-zero-day",
+    any(target_os = "android", target_os = "ios")
+))]
 pub use nmap_zero_day_mobile as nmap_zero_day;
 
 #[cfg(feature = "api-security-scanner")]

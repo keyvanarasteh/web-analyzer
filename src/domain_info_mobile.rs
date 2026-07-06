@@ -82,12 +82,14 @@ pub async fn get_domain_info(
     let start_time = Instant::now();
 
     if let Some(t) = &progress_tx {
-        let _ = t.send(crate::ScanProgress {
-            module: "Domain Info".into(),
-            percentage: 10.0,
-            message: "Starting native mobile domain analysis".into(),
-            status: "Info".into(),
-        }).await;
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Domain Info".into(),
+                percentage: 10.0,
+                message: "Starting native mobile domain analysis".into(),
+                status: "Info".into(),
+            })
+            .await;
     }
 
     let mut result = DomainInfoResult {
@@ -159,7 +161,10 @@ pub async fn get_domain_info(
 
     if let Ok(response) = resolver.mx_lookup(domain).await {
         for mx in response.iter() {
-            result.dns.mx_records.push(format!("{} {}", mx.preference(), mx.exchange()));
+            result
+                .dns
+                .mx_records
+                .push(format!("{} {}", mx.preference(), mx.exchange()));
         }
     }
 
@@ -186,41 +191,48 @@ pub async fn get_domain_info(
     }
 
     if let Some(t) = &progress_tx {
-        let _ = t.send(crate::ScanProgress {
-            module: "Domain Info".into(),
-            percentage: 40.0,
-            message: "DNS Analysis Complete. Checking Ports.".into(),
-            status: "Info".into(),
-        }).await;
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Domain Info".into(),
+                percentage: 40.0,
+                message: "DNS Analysis Complete. Checking Ports.".into(),
+                status: "Info".into(),
+            })
+            .await;
     }
 
     // 2. Open Ports
     let target_ports = [80, 443, 21, 22, 25, 3306, 8080, 8443];
     for port in target_ports {
         let target = format!("{}:{}", domain, port);
-        if timeout(Duration::from_millis(500), TcpStream::connect(&target)).await.is_ok() {
+        if timeout(Duration::from_millis(500), TcpStream::connect(&target))
+            .await
+            .is_ok()
+        {
             result.open_ports.push(port.to_string());
         }
     }
 
     if let Some(t) = &progress_tx {
-        let _ = t.send(crate::ScanProgress {
-            module: "Domain Info".into(),
-            percentage: 70.0,
-            message: "Checking HTTP/HTTPS footprint in native client".into(),
-            status: "Info".into(),
-        }).await;
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Domain Info".into(),
+                percentage: 70.0,
+                message: "Checking HTTP/HTTPS footprint in native client".into(),
+                status: "Info".into(),
+            })
+            .await;
     }
 
     // 3. HTTP / Security Check
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(5))
         .danger_accept_invalid_certs(true)
         .redirect(reqwest::redirect::Policy::limited(3))
         .build()
         .unwrap_or_else(|_| Client::new());
 
-    if let Ok(resp) = client.get(&format!("http://{}", domain)).send().await {
+    if let Ok(resp) = client.get(format!("http://{}", domain)).send().await {
         result.http_status = Some(resp.status().to_string());
         if resp.url().scheme() == "https" {
             result.security.https_redirect = true;
@@ -230,15 +242,22 @@ pub async fn get_domain_info(
         }
     }
 
-    if let Ok(resp) = client.get(&format!("https://{}", domain)).send().await {
+    if let Ok(resp) = client.get(format!("https://{}", domain)).send().await {
         result.security.https_available = true;
         result.ssl.status = "Valid (Native Check)".into();
         result.security.headers_count = resp.headers().len();
-        
+
         // Track typical security headers
-        for h in ["strict-transport-security", "content-security-policy", "x-frame-options"] {
+        for h in [
+            "strict-transport-security",
+            "content-security-policy",
+            "x-frame-options",
+        ] {
             if let Some(val) = resp.headers().get(h) {
-                result.security.security_headers.insert(h.into(), val.to_str().unwrap_or("").into());
+                result
+                    .security
+                    .security_headers
+                    .insert(h.into(), val.to_str().unwrap_or("").into());
             }
         }
     } else {
@@ -247,19 +266,25 @@ pub async fn get_domain_info(
 
     // Very basic scoring logic for fallback
     let mut score = 50;
-    if result.security.https_available { score += 20; }
-    if result.security.https_redirect { score += 10; }
+    if result.security.https_available {
+        score += 20;
+    }
+    if result.security.https_redirect {
+        score += 10;
+    }
     score += (result.security.security_headers.len() * 5) as u32;
     result.security_score = std::cmp::min(100, score);
     result.response_time_ms = Some(start_time.elapsed().as_millis() as f64);
 
     if let Some(t) = &progress_tx {
-        let _ = t.send(crate::ScanProgress {
-            module: "Domain Info".into(),
-            percentage: 100.0,
-            message: "Analysis logic loop finished".into(),
-            status: "Info".into(),
-        }).await;
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Domain Info".into(),
+                percentage: 100.0,
+                message: "Analysis logic loop finished".into(),
+                status: "Info".into(),
+            })
+            .await;
     }
 
     Ok(result)

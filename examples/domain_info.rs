@@ -20,7 +20,10 @@ async fn main() {
             println!("━━━ Domain Intelligence ━━━━━━━━━━━━━━━━━━━━");
             println!("  Domain:       {}", info.domain);
             println!("  IPv4:         {}", info.ipv4.as_deref().unwrap_or("N/A"));
-            println!("  Web Server:   {}", info.web_server.as_deref().unwrap_or("N/A"));
+            println!(
+                "  Web Server:   {}",
+                info.web_server.as_deref().unwrap_or("N/A")
+            );
             println!("  Open Ports:   {:?}", info.open_ports);
             println!();
             println!("━━━ WHOIS ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -31,9 +34,18 @@ async fn main() {
             println!();
             println!("━━━ SSL ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             println!("  Status:       {}", info.ssl.status);
-            println!("  Issued To:    {}", info.ssl.issued_to.as_deref().unwrap_or("N/A"));
-            println!("  Issuer:       {}", info.ssl.issuer.as_deref().unwrap_or("N/A"));
-            println!("  Protocol:     {}", info.ssl.protocol_version.as_deref().unwrap_or("N/A"));
+            println!(
+                "  Issued To:    {}",
+                info.ssl.issued_to.as_deref().unwrap_or("N/A")
+            );
+            println!(
+                "  Issuer:       {}",
+                info.ssl.issuer.as_deref().unwrap_or("N/A")
+            );
+            println!(
+                "  Protocol:     {}",
+                info.ssl.protocol_version.as_deref().unwrap_or("N/A")
+            );
             println!();
             println!("━━━ Security ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             println!("  HTTPS:        {}", info.security.https_available);

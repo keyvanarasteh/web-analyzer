@@ -64,7 +64,16 @@ pub async fn run_nmap_scan(
     let start = Instant::now();
 
     // ── DNS Resolution ──────────────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Nmap Zero-Day".into(), percentage: 5.0, message: "Resolving target IP for direct scanning...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Nmap Zero-Day".into(),
+                percentage: 5.0,
+                message: "Resolving target IP for direct scanning...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let mut ipv4: Option<String> = None;
     let mut ipv6: Option<String> = None;
 
@@ -81,7 +90,16 @@ pub async fn run_nmap_scan(
     let ip = ipv4.clone().unwrap_or_else(|| domain.to_string());
 
     // ── Nmap Port Scan ──────────────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Nmap Zero-Day".into(), percentage: 15.0, message: "Executing Nmap fast scan on top 1000 ports...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Nmap Zero-Day".into(),
+                percentage: 15.0,
+                message: "Executing Nmap fast scan on top 1000 ports...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let output = Command::new("nmap")
         .args([
             "-sV",
@@ -100,7 +118,16 @@ pub async fn run_nmap_scan(
     let stdout = String::from_utf8_lossy(&output.stdout);
     let mut open_ports: Vec<PortInfo> = Vec::new();
 
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Nmap Zero-Day".into(), percentage: 50.0, message: "Parsing Nmap schema mapping...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Nmap Zero-Day".into(),
+                percentage: 50.0,
+                message: "Parsing Nmap schema mapping...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
 
     // Parse grepable output: Host: x.x.x.x () Ports: 22/open/tcp//ssh//OpenSSH 8.9/, ...
     for line in stdout.lines() {
@@ -143,7 +170,16 @@ pub async fn run_nmap_scan(
     }
 
     // ── Vulnerability Lookup (NVD CVE) ──────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Nmap Zero-Day".into(), percentage: 60.0, message: "Initializing NVD Extractor...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Nmap Zero-Day".into(),
+                percentage: 60.0,
+                message: "Initializing NVD Extractor...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let vulnerabilities = fetch_vulnerabilities(&open_ports, &progress_tx).await;
 
     let scan_time = start.elapsed().as_secs_f64();
@@ -164,7 +200,7 @@ async fn fetch_vulnerabilities(
     ports: &[PortInfo],
     progress_tx: &Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Vec<VulnerabilityInfo> {
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(20))
         .build()
         .unwrap_or_else(|_| Client::new());
@@ -172,7 +208,16 @@ async fn fetch_vulnerabilities(
     let mut all_vulns = Vec::new();
 
     for (i, port) in ports.iter().enumerate() {
-        if let Some(t) = progress_tx { let _ = t.send(crate::ScanProgress { module: "Nmap Zero-Day".into(), percentage: 60.0 + (40.0 * (i as f32 / ports.len().max(1) as f32)), message: format!("Matching CVEs for port {} ({})", port.port, port.service), status: "Info".into() }).await; }
+        if let Some(t) = progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "Nmap Zero-Day".into(),
+                    percentage: 60.0 + (40.0 * (i as f32 / ports.len().max(1) as f32)),
+                    message: format!("Matching CVEs for port {} ({})", port.port, port.service),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         // Build keyword from service + version/product
         let keywords: Vec<&str> = [
             port.service.as_str(),

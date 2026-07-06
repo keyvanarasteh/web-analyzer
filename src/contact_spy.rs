@@ -1,5 +1,4 @@
 use regex::Regex;
-use reqwest::Client;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -109,7 +108,7 @@ pub async fn crawl_contacts(
         .next()
         .unwrap_or(domain);
 
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(15))
         .danger_accept_invalid_certs(true)
         .redirect(reqwest::redirect::Policy::limited(3))
@@ -217,9 +216,10 @@ pub async fn crawl_contacts(
             let digits_only: String = digits.replace('+', "");
 
             if is_valid_phone(&digits_only, &phone_fp_regexes)
-                && (digits.starts_with('+') || digits_only.len() >= 10) {
-                    all_phones.insert(digits);
-                }
+                && (digits.starts_with('+') || digits_only.len() >= 10)
+            {
+                all_phones.insert(digits);
+            }
         }
 
         // ── Extract social media ────────────────────────────────────────
@@ -348,8 +348,7 @@ fn build_social_patterns() -> Vec<(String, Regex)> {
         ),
         (
             "Twitter".into(),
-            Regex::new(r"(?i)(?:twitter\.com|x\.com)/([a-zA-Z0-9._-]+)")
-                .unwrap(),
+            Regex::new(r"(?i)(?:twitter\.com|x\.com)/([a-zA-Z0-9._-]+)").unwrap(),
         ),
         (
             "Instagram".into(),

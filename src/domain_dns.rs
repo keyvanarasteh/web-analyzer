@@ -58,43 +58,115 @@ pub async fn get_dns_records(
 ) -> Result<DomainDnsResult, Box<dyn std::error::Error + Send + Sync>> {
     let start_time = Instant::now();
 
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Domain DNS".into(), percentage: 5.0, message: "Starting parallel DNS resolution...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Domain DNS".into(),
+                percentage: 5.0,
+                message: "Starting parallel DNS resolution...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
 
     // Run all 7 record types concurrently
     let (a, aaaa, mx, ns, soa, txt, cname) = tokio::join!(
         async {
             let res = resolve_record(domain, "A").await;
-            if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Domain DNS".into(), percentage: 15.0, message: "Resolved A records".into(), status: "Success".into() }).await; }
+            if let Some(t) = &progress_tx {
+                let _ = t
+                    .send(crate::ScanProgress {
+                        module: "Domain DNS".into(),
+                        percentage: 15.0,
+                        message: "Resolved A records".into(),
+                        status: "Success".into(),
+                    })
+                    .await;
+            }
             res
         },
         async {
             let res = resolve_record(domain, "AAAA").await;
-            if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Domain DNS".into(), percentage: 30.0, message: "Resolved AAAA records".into(), status: "Success".into() }).await; }
+            if let Some(t) = &progress_tx {
+                let _ = t
+                    .send(crate::ScanProgress {
+                        module: "Domain DNS".into(),
+                        percentage: 30.0,
+                        message: "Resolved AAAA records".into(),
+                        status: "Success".into(),
+                    })
+                    .await;
+            }
             res
         },
         async {
             let res = resolve_record(domain, "MX").await;
-            if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Domain DNS".into(), percentage: 45.0, message: "Resolved MX records".into(), status: "Success".into() }).await; }
+            if let Some(t) = &progress_tx {
+                let _ = t
+                    .send(crate::ScanProgress {
+                        module: "Domain DNS".into(),
+                        percentage: 45.0,
+                        message: "Resolved MX records".into(),
+                        status: "Success".into(),
+                    })
+                    .await;
+            }
             res
         },
         async {
             let res = resolve_record(domain, "NS").await;
-            if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Domain DNS".into(), percentage: 60.0, message: "Resolved NS records".into(), status: "Success".into() }).await; }
+            if let Some(t) = &progress_tx {
+                let _ = t
+                    .send(crate::ScanProgress {
+                        module: "Domain DNS".into(),
+                        percentage: 60.0,
+                        message: "Resolved NS records".into(),
+                        status: "Success".into(),
+                    })
+                    .await;
+            }
             res
         },
         async {
             let res = resolve_record(domain, "SOA").await;
-            if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Domain DNS".into(), percentage: 75.0, message: "Resolved SOA records".into(), status: "Success".into() }).await; }
+            if let Some(t) = &progress_tx {
+                let _ = t
+                    .send(crate::ScanProgress {
+                        module: "Domain DNS".into(),
+                        percentage: 75.0,
+                        message: "Resolved SOA records".into(),
+                        status: "Success".into(),
+                    })
+                    .await;
+            }
             res
         },
         async {
             let res = resolve_record(domain, "TXT").await;
-            if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Domain DNS".into(), percentage: 90.0, message: "Resolved TXT records".into(), status: "Success".into() }).await; }
+            if let Some(t) = &progress_tx {
+                let _ = t
+                    .send(crate::ScanProgress {
+                        module: "Domain DNS".into(),
+                        percentage: 90.0,
+                        message: "Resolved TXT records".into(),
+                        status: "Success".into(),
+                    })
+                    .await;
+            }
             res
         },
         async {
             let res = resolve_record(domain, "CNAME").await;
-            if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Domain DNS".into(), percentage: 100.0, message: "Resolved CNAME records".into(), status: "Success".into() }).await; }
+            if let Some(t) = &progress_tx {
+                let _ = t
+                    .send(crate::ScanProgress {
+                        module: "Domain DNS".into(),
+                        percentage: 100.0,
+                        message: "Resolved CNAME records".into(),
+                        status: "Success".into(),
+                    })
+                    .await;
+            }
             res
         },
     );

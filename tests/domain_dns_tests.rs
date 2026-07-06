@@ -13,9 +13,6 @@ async fn test_get_dns_records() {
     let info = result.unwrap();
     assert_eq!(info.domain, "example.com");
 
-    // Check timing is calculated
-    assert!(info.response_time_ms >= 0);
-
     // Ensure A records exist for example.com
     assert!(!info.records.a.is_empty(), "Missing A records");
     // Ensure NS records exist

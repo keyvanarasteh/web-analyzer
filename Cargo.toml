@@ -33,6 +33,7 @@ domain-dns = []
 seo-analysis = []
 web-technologies = []
 domain-validator = []
+rustls = []
 
 # Reconnaissance
 subdomain-discovery = []
@@ -52,7 +53,7 @@ react-honeypot = []
 [dependencies]
 chrono = "0.4"
 regex = "1.12"
-reqwest = { version = "0.13", features = ["json", "rustls"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
 scraper = "0.26"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -64,7 +65,7 @@ urlencoding = "2.1"
 # Pure Rust Mobile Dependencies (Optional)
 hickory-resolver = { version = "0.24.1", optional = true }
 x509-parser = { version = "0.16.0", optional = true }
-rustls = { version = "0.23.13", optional = true }
+rustls = { version = "0.23.13", default-features = false, features = ["ring", "std", "tls12"] }
 
 [dev-dependencies]
 tokio = { version = "1.50", features = ["full", "macros", "rt-multi-thread"] }

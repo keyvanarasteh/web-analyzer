@@ -182,7 +182,7 @@ pub async fn scan_api_endpoints(
         format!("https://{}", domain)
     };
 
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(15))
         .danger_accept_invalid_certs(true)
         .redirect(reqwest::redirect::Policy::limited(3))
@@ -191,7 +191,16 @@ pub async fn scan_api_endpoints(
     // ── Phase 1: Endpoint Discovery ─────────────────────────────────────
     let mut verified_endpoints: Vec<ApiEndpoint> = Vec::new();
 
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "API Security".into(), percentage: 5.0, message: "Started API endpoint discovery...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "API Security".into(),
+                percentage: 5.0,
+                message: "Started API endpoint discovery...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
 
     // 1a. Probe paths from embedded api_endpoints.txt
     let api_paths = payloads::lines(payloads::API_ENDPOINTS);
@@ -199,7 +208,16 @@ pub async fn scan_api_endpoints(
 
     for (i, path) in api_paths.iter().enumerate() {
         if i % 10 == 0 {
-            if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "API Security".into(), percentage: 5.0 + (15.0 * (i as f32 / total_paths_probed as f32)), message: format!("Probing paths: {}", path), status: "Info".into() }).await; }
+            if let Some(t) = &progress_tx {
+                let _ = t
+                    .send(crate::ScanProgress {
+                        module: "API Security".into(),
+                        percentage: 5.0 + (15.0 * (i as f32 / total_paths_probed as f32)),
+                        message: format!("Probing paths: {}", path),
+                        status: "Info".into(),
+                    })
+                    .await;
+            }
         }
         let url = format!("{}{}", base_url.trim_end_matches('/'), path);
         if let Some(endpoint) = verify_endpoint(&client, &url).await {
@@ -208,7 +226,16 @@ pub async fn scan_api_endpoints(
     }
 
     // 1b. Extract endpoints from JavaScript on main page
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "API Security".into(), percentage: 20.0, message: "Extracting JavaScript endpoints...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "API Security".into(),
+                percentage: 20.0,
+                message: "Extracting JavaScript endpoints...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let js_endpoints = extract_js_endpoints(&client, &base_url).await;
     for url in &js_endpoints {
         if !verified_endpoints.iter().any(|e| e.url == *url) {
@@ -219,7 +246,16 @@ pub async fn scan_api_endpoints(
     }
 
     // 1c. Extract API paths from robots.txt and sitemap.xml
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "API Security".into(), percentage: 25.0, message: "Checking robots.txt & sitemap.xml...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "API Security".into(),
+                percentage: 25.0,
+                message: "Checking robots.txt & sitemap.xml...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let robots_endpoints = extract_robots_sitemap_endpoints(&client, &base_url).await;
     for url in &robots_endpoints {
         if !verified_endpoints.iter().any(|e| e.url == *url) {
@@ -230,7 +266,16 @@ pub async fn scan_api_endpoints(
     }
 
     // 1d. Scrape Swagger/OpenAPI documentation for real paths
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "API Security".into(), percentage: 30.0, message: "Hunting for OpenAPI/Swagger docs...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "API Security".into(),
+                percentage: 30.0,
+                message: "Hunting for OpenAPI/Swagger docs...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let doc_endpoints = scrape_documentation_endpoints(&client, &base_url).await;
     for url in &doc_endpoints {
         if !verified_endpoints.iter().any(|e| e.url == *url) {
@@ -241,7 +286,16 @@ pub async fn scan_api_endpoints(
     }
 
     // 1e. Check common API subdomains
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "API Security".into(), percentage: 35.0, message: "Bruting common API subdomains...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "API Security".into(),
+                percentage: 35.0,
+                message: "Bruting common API subdomains...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let subdomain_endpoints = check_api_subdomains(&client, domain).await;
     for url in &subdomain_endpoints {
         if !verified_endpoints.iter().any(|e| e.url == *url) {
@@ -255,10 +309,31 @@ pub async fn scan_api_endpoints(
     let mut vulnerabilities: Vec<VulnerabilityFinding> = Vec::new();
     let endpoints_tested = verified_endpoints.len();
 
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "API Security".into(), percentage: 40.0, message: format!("Found {} endpoints, starting active fuzzing...", endpoints_tested), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "API Security".into(),
+                percentage: 40.0,
+                message: format!(
+                    "Found {} endpoints, starting active fuzzing...",
+                    endpoints_tested
+                ),
+                status: "Info".into(),
+            })
+            .await;
+    }
 
     for (i, ep) in verified_endpoints.iter().enumerate() {
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "API Security".into(), percentage: 40.0 + (60.0 * (i as f32 / endpoints_tested.max(1) as f32)), message: format!("Fuzzing endpoint: {}", ep.url), status: "Info".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "API Security".into(),
+                    percentage: 40.0 + (60.0 * (i as f32 / endpoints_tested.max(1) as f32)),
+                    message: format!("Fuzzing endpoint: {}", ep.url),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         let mut findings = test_endpoint(&client, &ep.url).await;
         vulnerabilities.append(&mut findings);
 

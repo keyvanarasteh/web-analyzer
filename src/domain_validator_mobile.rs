@@ -83,36 +83,38 @@ pub async fn validate_domain(domain: &str) -> ValidationResult {
         ip_addresses: vec![],
         mx_exists: false,
     };
-    
+
     let resolver = AsyncResolver::tokio(ResolverConfig::cloudflare(), ResolverOpts::default());
-    
+
     if let Ok(response) = resolver.ipv4_lookup(domain).await {
         for ip in response.iter() {
             dns_info.ip_addresses.push(ip.to_string());
         }
     }
-    
+
     if let Ok(response) = resolver.ipv6_lookup(domain).await {
         for ip in response.iter() {
             dns_info.ip_addresses.push(ip.to_string());
         }
     }
-    
+
     if let Ok(response) = resolver.mx_lookup(domain).await {
         dns_info.mx_exists = response.iter().next().is_some();
     }
-    
+
     result.dns_valid = !dns_info.ip_addresses.is_empty();
     result.dns_info = Some(dns_info);
 
     if !result.dns_valid {
-        result.errors.push("DNS Resolution failed. No A/AAAA records.".into());
+        result
+            .errors
+            .push("DNS Resolution failed. No A/AAAA records.".into());
         return result; // Fast omit
     }
 
     // 2. HTTP/HTTPS Check
     let start_http = Instant::now();
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(5))
         .danger_accept_invalid_certs(true)
         .redirect(reqwest::redirect::Policy::limited(3))
@@ -128,7 +130,7 @@ pub async fn validate_domain(domain: &str) -> ValidationResult {
         response_time_ms: 0,
     };
 
-    if let Ok(resp) = client.get(&format!("http://{}", domain)).send().await {
+    if let Ok(resp) = client.get(format!("http://{}", domain)).send().await {
         http_info.http_reachable = true;
         http_info.http_status = Some(resp.status().as_u16());
         if resp.url().scheme() == "https" {
@@ -136,28 +138,35 @@ pub async fn validate_domain(domain: &str) -> ValidationResult {
         }
     }
 
-    if let Ok(resp) = client.get(&format!("https://{}", domain)).send().await {
+    if let Ok(resp) = client.get(format!("https://{}", domain)).send().await {
         http_info.https_reachable = true;
         http_info.https_status = Some(resp.status().as_u16());
     }
 
     http_info.response_time_ms = start_http.elapsed().as_millis();
     result.http_valid = http_info.http_reachable || http_info.https_reachable;
-    
+
     if !result.http_valid {
-        result.errors.push("Host is unreachable via HTTP/HTTPS.".into());
+        result
+            .errors
+            .push("Host is unreachable via HTTP/HTTPS.".into());
     }
-    
+
     result.http_info = Some(http_info.clone());
 
     // 3. SSL Check Extrapolation (via Reqwest connection success assuming certs are valid)
     // Detailed parsing requires x509-parser over pure TCP, but basic validation is supported natively here.
-    let ssl_client = Client::builder()
+    let ssl_client = crate::http_client_builder()
         .timeout(Duration::from_secs(5))
         .build()
         .unwrap_or_else(|_| Client::new());
 
-    if let Ok(_) = ssl_client.get(&format!("https://{}", domain)).send().await {
+    if ssl_client
+        .get(format!("https://{}", domain))
+        .send()
+        .await
+        .is_ok()
+    {
         result.ssl_valid = true;
         result.ssl_info = Some(SslValidation {
             ssl_available: true,
@@ -165,17 +174,22 @@ pub async fn validate_domain(domain: &str) -> ValidationResult {
             cipher_suite: "Standard".into(),
         });
     } else if http_info.https_reachable {
-        result.errors.push("SSL Certificate is invalid or untrusted.".into());
+        result
+            .errors
+            .push("SSL Certificate is invalid or untrusted.".into());
     }
 
     result.valid = result.dns_valid && result.http_valid;
     result
 }
 
-pub async fn validate_domains_bulk(domains: &[String], max_concurrency: usize) -> BulkValidationResult {
+pub async fn validate_domains_bulk(
+    domains: &[String],
+    max_concurrency: usize,
+) -> BulkValidationResult {
     let start_time = Instant::now();
     let total = domains.len();
-    
+
     let mut set = JoinSet::new();
     let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(max_concurrency));
 
@@ -207,17 +221,31 @@ pub async fn validate_domains_bulk(domains: &[String], max_concurrency: usize) -
                 skipped_count += 1;
             } else {
                 invalid_count += 1;
-                if !res.dns_valid { dns_failed += 1; }
-                if !res.http_valid { http_failed += 1; }
-                if !res.ssl_valid { ssl_failed += 1; }
+                if !res.dns_valid {
+                    dns_failed += 1;
+                }
+                if !res.http_valid {
+                    http_failed += 1;
+                }
+                if !res.ssl_valid {
+                    ssl_failed += 1;
+                }
             }
             results.push(res);
         }
     }
 
     let processing_time_secs = start_time.elapsed().as_secs_f64();
-    let success_rate = if total > 0 { (valid_count as f64 / total as f64) * 100.0 } else { 0.0 };
-    let domains_per_sec = if processing_time_secs > 0.0 { total as f64 / processing_time_secs } else { 0.0 };
+    let success_rate = if total > 0 {
+        (valid_count as f64 / total as f64) * 100.0
+    } else {
+        0.0
+    };
+    let domains_per_sec = if processing_time_secs > 0.0 {
+        total as f64 / processing_time_secs
+    } else {
+        0.0
+    };
 
     BulkValidationResult {
         stats: ValidationStats {

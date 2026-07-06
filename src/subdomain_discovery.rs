@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::time::Instant;
-use tokio::process::Command;
 use std::process::Stdio;
+use std::time::Instant;
 use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::process::Command;
 
 /// Skip patterns for problematic/noise domains
 const SKIP_PATTERNS: &[&str] = &[
@@ -54,33 +54,35 @@ pub struct SubdomainDiscoveryResult {
 
 pub async fn discover_subdomains(
     domain: &str,
-    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>
+    progress_tx: Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Result<SubdomainDiscoveryResult, Box<dyn std::error::Error + Send + Sync>> {
     let start_time = Instant::now();
 
     if let Some(tx) = &progress_tx {
-        let _ = tx.send(crate::ScanProgress {
-            module: "Subdomain".to_string(),
-            percentage: 10.0,
-            message: "Spawning high-concurrency subfinder process...".to_string(),
-            status: "ongoing".to_string()
-        }).await;
+        let _ = tx
+            .send(crate::ScanProgress {
+                module: "Subdomain".to_string(),
+                percentage: 10.0,
+                message: "Spawning high-concurrency subfinder process...".to_string(),
+                status: "ongoing".to_string(),
+            })
+            .await;
     }
 
     let mut command = Command::new("subfinder");
     command.arg("-d").arg(domain).arg("-silent");
-    
+
     command.stdout(Stdio::piped());
     command.stderr(Stdio::null());
 
     let mut child = command.spawn()?;
-    
+
     let stdout = child.stdout.take().expect("Failed to capture stdout");
     let mut reader = BufReader::new(stdout).lines();
 
     let mut seen = HashSet::new();
     let mut raw = Vec::new();
-    
+
     let mut total_found = 0;
 
     while let Some(line) = reader.next_line().await? {
@@ -88,15 +90,20 @@ pub async fn discover_subdomains(
         if !s.is_empty() && seen.insert(s.clone()) {
             raw.push(s.clone());
             total_found += 1;
-            
+
             if total_found % 20 == 0 {
                 if let Some(tx) = &progress_tx {
-                    let _ = tx.send(crate::ScanProgress {
-                        module: "Subdomain".to_string(),
-                        percentage: 50.0,
-                        message: format!("Discovered {} subdomains so far... [Latest: {}]", total_found, s),
-                        status: "ongoing".to_string()
-                    }).await;
+                    let _ = tx
+                        .send(crate::ScanProgress {
+                            module: "Subdomain".to_string(),
+                            percentage: 50.0,
+                            message: format!(
+                                "Discovered {} subdomains so far... [Latest: {}]",
+                                total_found, s
+                            ),
+                            status: "ongoing".to_string(),
+                        })
+                        .await;
                 }
             }
         }
@@ -105,38 +112,45 @@ pub async fn discover_subdomains(
     child.wait().await?;
 
     if let Some(tx) = &progress_tx {
-        let _ = tx.send(crate::ScanProgress {
-            module: "Subdomain".to_string(),
-            percentage: 90.0,
-            message: "Filtering noise and matching results against blocklists...".to_string(),
-            status: "ongoing".to_string()
-        }).await;
+        let _ = tx
+            .send(crate::ScanProgress {
+                module: "Subdomain".to_string(),
+                percentage: 90.0,
+                message: "Filtering noise and matching results against blocklists...".to_string(),
+                status: "ongoing".to_string(),
+            })
+            .await;
     }
 
     let raw_subdomains: Vec<String> = raw.into_iter().filter(|s| !should_skip(s)).collect();
     let filtered_count = total_found - raw_subdomains.len();
-    
+
     if let Some(tx) = &progress_tx {
-        let _ = tx.send(crate::ScanProgress {
-            module: "Subdomain".to_string(),
-            percentage: 92.0,
-            message: format!("Resolving HTTP status for {} unique subdomains...", raw_subdomains.len()),
-            status: "ongoing".to_string()
-        }).await;
+        let _ = tx
+            .send(crate::ScanProgress {
+                module: "Subdomain".to_string(),
+                percentage: 92.0,
+                message: format!(
+                    "Resolving HTTP status for {} unique subdomains...",
+                    raw_subdomains.len()
+                ),
+                status: "ongoing".to_string(),
+            })
+            .await;
     }
 
-    use tokio::task::JoinSet;
-    use tokio::sync::Semaphore;
     use std::sync::Arc;
+    use tokio::sync::Semaphore;
+    use tokio::task::JoinSet;
 
     let mut set = JoinSet::new();
-    let client = reqwest::Client::builder()
+    let client = crate::http_client_builder()
         .timeout(std::time::Duration::from_secs(5))
         .danger_accept_invalid_certs(true)
         .redirect(reqwest::redirect::Policy::limited(3))
         .build()
         .unwrap_or_default();
-        
+
     let semaphore = Arc::new(Semaphore::new(100));
 
     for host in raw_subdomains.clone() {
@@ -144,35 +158,32 @@ pub async fn discover_subdomains(
         let sem_c = semaphore.clone();
         set.spawn(async move {
             let _permit = sem_c.acquire().await;
-            
+
             // Probing HTTP -> HTTPS
             let url_http = format!("http://{}", host);
             match client_c.get(&url_http).send().await {
-                Ok(r) => {
-                    SubdomainDetail {
-                        host,
-                        status: Some(r.status().as_u16()),
-                        resolution_error: None,
-                    }
+                Ok(r) => SubdomainDetail {
+                    host,
+                    status: Some(r.status().as_u16()),
+                    resolution_error: None,
                 },
                 Err(e_http) => {
                     // Try HTTPS if HTTP completely drops
                     let url_https = format!("https://{}", host);
                     match client_c.get(&url_https).send().await {
-                        Ok(r) => {
-                            SubdomainDetail {
-                                host,
-                                status: Some(r.status().as_u16()),
-                                resolution_error: None,
-                            }
+                        Ok(r) => SubdomainDetail {
+                            host,
+                            status: Some(r.status().as_u16()),
+                            resolution_error: None,
                         },
-                        Err(e_https) => {
-                            SubdomainDetail {
-                                host,
-                                status: None,
-                                resolution_error: Some(format!("HTTP: {} | HTTPS: {}", e_http, e_https)),
-                            }
-                        }
+                        Err(e_https) => SubdomainDetail {
+                            host,
+                            status: None,
+                            resolution_error: Some(format!(
+                                "HTTP: {} | HTTPS: {}",
+                                e_http, e_https
+                            )),
+                        },
                     }
                 }
             }
@@ -187,15 +198,21 @@ pub async fn discover_subdomains(
         if let Ok(detail) = res {
             subdomains.push(detail);
             resolved += 1;
-            
+
             if resolved % 25 == 0 {
                 if let Some(tx) = &progress_tx {
-                    let _ = tx.send(crate::ScanProgress {
-                        module: "Subdomain".to_string(),
-                        percentage: 92.0 + (7.0 * (resolved as f32 / total_to_resolve as f32).max(0.01)),
-                        message: format!("Resolved HTTP status for {}/{} subdomains...", resolved, total_to_resolve),
-                        status: "ongoing".to_string()
-                    }).await;
+                    let _ = tx
+                        .send(crate::ScanProgress {
+                            module: "Subdomain".to_string(),
+                            percentage: 92.0
+                                + (7.0 * (resolved as f32 / total_to_resolve as f32).max(0.01)),
+                            message: format!(
+                                "Resolved HTTP status for {}/{} subdomains...",
+                                resolved, total_to_resolve
+                            ),
+                            status: "ongoing".to_string(),
+                        })
+                        .await;
                 }
             }
         }
@@ -204,12 +221,14 @@ pub async fn discover_subdomains(
     let duration = start_time.elapsed().as_millis();
 
     if let Some(tx) = &progress_tx {
-        let _ = tx.send(crate::ScanProgress {
-            module: "Subdomain".to_string(),
-            percentage: 100.0,
-            message: "Subdomain footprint mapping and HTTP verification completed.".to_string(),
-            status: "completed".to_string()
-        }).await;
+        let _ = tx
+            .send(crate::ScanProgress {
+                module: "Subdomain".to_string(),
+                percentage: 100.0,
+                message: "Subdomain footprint mapping and HTTP verification completed.".to_string(),
+                status: "completed".to_string(),
+            })
+            .await;
     }
 
     Ok(SubdomainDiscoveryResult {

@@ -90,7 +90,9 @@ pub async fn get_dns_records(
 
     if let Ok(response) = resolver.mx_lookup(domain).await {
         for mx in response.iter() {
-            records_meta.mx.push(format!("{} {}", mx.preference(), mx.exchange()));
+            records_meta
+                .mx
+                .push(format!("{} {}", mx.preference(), mx.exchange()));
         }
     }
 
@@ -141,7 +143,9 @@ pub async fn get_dns_records(
     if let Ok(response) = resolver.lookup(domain, RecordType::SOA).await {
         for record in response.iter() {
             if let Some(soa) = record.as_soa() {
-                records_meta.soa.push(format!("{} {}", soa.mname(), soa.rname()));
+                records_meta
+                    .soa
+                    .push(format!("{} {}", soa.mname(), soa.rname()));
             }
         }
     }

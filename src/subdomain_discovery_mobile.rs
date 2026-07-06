@@ -12,7 +12,10 @@ pub struct SubdomainDiscoveryResult {
 pub async fn discover_subdomains(
     _domain: &str,
 ) -> Result<SubdomainDiscoveryResult, Box<dyn std::error::Error + Send + Sync>> {
-    Err(crate::error::WebAnalyzerError::UnsupportedPlatform("Subdomain discovery via Subfinder binary is unsupported on mobile endpoints.".into()).into())
+    Err(crate::error::WebAnalyzerError::UnsupportedPlatform(
+        "Subdomain discovery via Subfinder binary is unsupported on mobile endpoints.".into(),
+    )
+    .into())
 }
 
 pub fn is_subdomain(domain: &str) -> bool {

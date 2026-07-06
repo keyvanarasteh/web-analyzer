@@ -57,12 +57,17 @@ pub async fn check_subdomain_takeover(
     let resolver = AsyncResolver::tokio(ResolverConfig::cloudflare(), ResolverOpts::default());
 
     if let Some(t) = &progress_tx {
-        let _ = t.send(crate::ScanProgress {
-            module: "Subdomain Takeover".into(),
-            percentage: 10.0,
-            message: format!("Checking {} subdomains for dangling CNAMEs natively", subdomains.len()),
-            status: "Info".into(),
-        }).await;
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Subdomain Takeover".into(),
+                percentage: 10.0,
+                message: format!(
+                    "Checking {} subdomains for dangling CNAMEs natively",
+                    subdomains.len()
+                ),
+                status: "Info".into(),
+            })
+            .await;
     }
 
     let mut vulnerable_list = Vec::new();
@@ -85,7 +90,7 @@ pub async fn check_subdomain_takeover(
                     }
                 }
             }
-            
+
             if let Ok(response) = res.ipv4_lookup(subdomain.as_str()).await {
                 for ip in response.iter() {
                     a_records.push(ip.to_string());
@@ -99,7 +104,10 @@ pub async fn check_subdomain_takeover(
                     vulnerability_type: "Dangling CNAME".into(),
                     cname: Some(cname_records[0].clone()),
                     confidence: "High".into(),
-                    description: format!("CNAME points to {} which doesn't resolve to an IP.", cname_records[0]),
+                    description: format!(
+                        "CNAME points to {} which doesn't resolve to an IP.",
+                        cname_records[0]
+                    ),
                     exploitation_difficulty: "Medium".into(),
                     mitigation: "Remove the DNS record or claim the external resource.".into(),
                     dns_info: DnsCheckResult {
@@ -130,12 +138,14 @@ pub async fn check_subdomain_takeover(
     }
 
     if let Some(t) = &progress_tx {
-        let _ = t.send(crate::ScanProgress {
-            module: "Subdomain Takeover".into(),
-            percentage: 100.0,
-            message: "Finished native CNAME checking".into(),
-            status: "Info".into(),
-        }).await;
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Subdomain Takeover".into(),
+                percentage: 100.0,
+                message: "Finished native CNAME checking".into(),
+                status: "Info".into(),
+            })
+            .await;
     }
 
     Ok(TakeoverResult {

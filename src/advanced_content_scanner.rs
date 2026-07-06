@@ -1,5 +1,4 @@
 use regex::Regex;
-use reqwest::Client;
 use scraper::{Html, Selector};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashSet, VecDeque};
@@ -511,7 +510,7 @@ pub async fn scan_content(
         format!("https://{}", domain)
     };
 
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(15))
         .danger_accept_invalid_certs(true)
         .build()?;
@@ -528,12 +527,7 @@ pub async fn scan_content(
     let max_depth: u8 = 2;
     let max_pages: usize = 50;
 
-    report_progress(
-        &progress_tx,
-        10.0,
-        "Compiling detection patterns",
-        "Info",
-    );
+    report_progress(&progress_tx, 10.0, "Compiling detection patterns", "Info");
 
     // Compile regex patterns once
     let secret_regexes: Vec<(&SecretPattern, Regex)> = SECRET_PATTERNS
@@ -604,7 +598,12 @@ pub async fn scan_content(
 
     // ── Process sitemap.xml for seed URLs ─────────────────────────────
     let sitemap_url = format!("{}/sitemap.xml", base_url.trim_end_matches('/'));
-    report_progress(&progress_tx, 20.0, "Checking sitemap.xml for seed URLs", "Info");
+    report_progress(
+        &progress_tx,
+        20.0,
+        "Checking sitemap.xml for seed URLs",
+        "Info",
+    );
     if let Ok(resp) = client.get(&sitemap_url).send().await {
         if resp.status().is_success() {
             if let Ok(body) = resp.text().await {
@@ -770,11 +769,12 @@ pub async fn scan_content(
                 }
             }
         } else if (content_type.contains("javascript") || url.ends_with(".js"))
-            && !is_known_library(&url) {
-                js_file_urls.insert(url.clone());
-                scan_js_security(&body, &url, &js_vuln_regexes, &mut js_vulns);
-                scan_for_secrets(&body, &url, &secret_regexes, &mut secrets);
-            }
+            && !is_known_library(&url)
+        {
+            js_file_urls.insert(url.clone());
+            scan_js_security(&body, &url, &js_vuln_regexes, &mut js_vulns);
+            scan_for_secrets(&body, &url, &secret_regexes, &mut secrets);
+        }
     }
 
     // ── Fetch & analyze external JS files ────────────────────────────────
@@ -809,7 +809,7 @@ pub async fn scan_content(
 
     // ── Probe discovered API endpoints for SSRF ─────────────────────────
     let ssrf_probes = payloads::lines(payloads::SSRF);
-    let ssrf_limit = api_endpoints.len().min(20).max(1);
+    let ssrf_limit = api_endpoints.len().clamp(1, 20);
     for (index, endpoint) in api_endpoints.iter().take(20).enumerate() {
         // limit to 20 to avoid flooding
         report_progress(

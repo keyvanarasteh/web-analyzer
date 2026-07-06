@@ -102,7 +102,7 @@ pub async fn find_real_ip(
         .trim_start_matches("https://")
         .trim_start_matches("http://");
 
-    let client = Client::builder()
+    let client = crate::http_client_builder()
         .timeout(Duration::from_secs(8))
         .danger_accept_invalid_certs(true)
         .redirect(reqwest::redirect::Policy::limited(3))
@@ -111,10 +111,28 @@ pub async fn find_real_ip(
     let ip_regex = Regex::new(r"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b").unwrap();
     let mut found_ips: Vec<FoundIp> = Vec::new();
 
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Cloudflare Bypass".into(), percentage: 5.0, message: "Started real IP discovery...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Cloudflare Bypass".into(),
+                percentage: 5.0,
+                message: "Started real IP discovery...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
 
     // ── 1. Direct DNS resolution ────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Cloudflare Bypass".into(), percentage: 10.0, message: "Performing direct DNS resolution...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Cloudflare Bypass".into(),
+                percentage: 10.0,
+                message: "Performing direct DNS resolution...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     let dns_ip = tokio::net::lookup_host(format!("{}:80", clean_domain))
         .await
         .ok()
@@ -142,7 +160,16 @@ pub async fn find_real_ip(
     // Only run bypass techniques if CF-protected
     if cloudflare_protected {
         // ── 2. Check common + domain-specific subdomains ────────────────
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Cloudflare Bypass".into(), percentage: 30.0, message: "Checking infrastructure subdomains...".into(), status: "Info".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "Cloudflare Bypass".into(),
+                    percentage: 30.0,
+                    message: "Checking infrastructure subdomains...".into(),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         let mut subdomains: Vec<String> =
             vec!["direct", "origin", "api", "mail", "cpanel", "server", "ftp"]
                 .into_iter()
@@ -178,7 +205,16 @@ pub async fn find_real_ip(
         }
 
         // ── 3. Check response headers for IP leaks ──────────────────────
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Cloudflare Bypass".into(), percentage: 60.0, message: "Analyzing response origin headers...".into(), status: "Info".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "Cloudflare Bypass".into(),
+                    percentage: 60.0,
+                    message: "Analyzing response origin headers...".into(),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         if let Ok(resp) = client.get(format!("https://{}", clean_domain)).send().await {
             for header in HEADERS_TO_CHECK {
                 if let Some(val) = resp.headers().get(*header) {
@@ -201,7 +237,16 @@ pub async fn find_real_ip(
         }
 
         // ── 4. IP History lookup ────────────────────────────────────────
-        if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Cloudflare Bypass".into(), percentage: 75.0, message: "Querying historical DNS databases...".into(), status: "Info".into() }).await; }
+        if let Some(t) = &progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "Cloudflare Bypass".into(),
+                    percentage: 75.0,
+                    message: "Querying historical DNS databases...".into(),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         let history_ips = check_ip_history(&client, clean_domain, &ip_regex, &progress_tx).await;
         found_ips.extend(history_ips);
     }
@@ -222,10 +267,19 @@ pub async fn find_real_ip(
 
     // Sort by confidence (highest first)
     let mut results: Vec<FoundIp> = best.into_values().collect();
-    results.sort_by(|a, b| confidence_score(&b.confidence).cmp(&confidence_score(&a.confidence)));
+    results.sort_by_key(|result| std::cmp::Reverse(confidence_score(&result.confidence)));
 
     // ── Verify top 5 IPs ────────────────────────────────────────────────
-    if let Some(t) = &progress_tx { let _ = t.send(crate::ScanProgress { module: "Cloudflare Bypass".into(), percentage: 95.0, message: "Verifying active status of top leaked IPs...".into(), status: "Info".into() }).await; }
+    if let Some(t) = &progress_tx {
+        let _ = t
+            .send(crate::ScanProgress {
+                module: "Cloudflare Bypass".into(),
+                percentage: 95.0,
+                message: "Verifying active status of top leaked IPs...".into(),
+                status: "Info".into(),
+            })
+            .await;
+    }
     for i in 0..results.len().min(5) {
         let status = verify_ip(&results[i].ip).await;
         results[i].status = Some(status);
@@ -245,15 +299,24 @@ pub async fn find_real_ip(
 // ── IP History ──────────────────────────────────────────────────────────────
 
 async fn check_ip_history(
-    client: &Client, 
-    domain: &str, 
+    client: &Client,
+    domain: &str,
     ip_regex: &Regex,
     progress_tx: &Option<tokio::sync::mpsc::Sender<crate::ScanProgress>>,
 ) -> Vec<FoundIp> {
     let mut results = Vec::new();
 
     for (name, url_template) in IP_HISTORY_SOURCES {
-        if let Some(t) = progress_tx { let _ = t.send(crate::ScanProgress { module: "Cloudflare Bypass".into(), percentage: 80.0, message: format!("Querying IP history: {}", name), status: "Info".into() }).await; }
+        if let Some(t) = progress_tx {
+            let _ = t
+                .send(crate::ScanProgress {
+                    module: "Cloudflare Bypass".into(),
+                    percentage: 80.0,
+                    message: format!("Querying IP history: {}", name),
+                    status: "Info".into(),
+                })
+                .await;
+        }
         let url = url_template.replace("{}", domain);
         let resp = match client
             .get(&url)
