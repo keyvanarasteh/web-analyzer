@@ -63,6 +63,7 @@
 pub mod error;
 
 use serde::{Deserialize, Serialize};
+#[cfg(not(target_os = "android"))]
 use std::sync::Once;
 
 /// Standardized progress event for async tasks.
@@ -74,13 +75,18 @@ pub struct ScanProgress {
     pub status: String,
 }
 
+#[cfg(not(target_os = "android"))]
 static CRYPTO_PROVIDER_INIT: Once = Once::new();
 
 /// Return a reqwest client builder after installing the Rustls ring provider once.
 pub fn http_client_builder() -> reqwest::ClientBuilder {
-    CRYPTO_PROVIDER_INIT.call_once(|| {
-        let _ = rustls::crypto::ring::default_provider().install_default();
-    });
+    #[cfg(not(target_os = "android"))]
+    {
+        CRYPTO_PROVIDER_INIT.call_once(|| {
+            let _ = rustls::crypto::ring::default_provider().install_default();
+        });
+    }
+
     reqwest::Client::builder()
 }
 
