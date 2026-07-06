@@ -58,7 +58,7 @@ scraper = "0.26"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0"
-tokio = { version = "1.50", features = ["full"] }
+tokio = { version = "1.52", features = ["full"] }
 tracing = "0.1"
 urlencoding = "2.1"
 
@@ -68,7 +68,7 @@ x509-parser = { version = "0.16.0", optional = true }
 rustls = { version = "0.23.13", default-features = false, features = ["ring", "std", "tls12"] }
 
 [dev-dependencies]
-tokio = { version = "1.50", features = ["full", "macros", "rt-multi-thread"] }
+tokio = { version = "1.52", features = ["full", "macros", "rt-multi-thread"] }
 
 [lints.rust]
 unsafe_code = "forbid"
